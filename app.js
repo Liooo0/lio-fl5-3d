@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 
 const FL5 = window.__fl5;
 const errPush = m => { FL5.errs.push(String(m).slice(0, 300)); if (FL5.errs.length > 50) FL5.errs.length = 50; };
@@ -14,7 +15,7 @@ function main() {
   const lerp = THREE.MathUtils.lerp;
   const ease = u => u * u * (3 - 2 * u);
 
-  const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -26,10 +27,10 @@ function main() {
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0xdfe7ee);
-  scene.fog = new THREE.Fog(0xdfe7ee, 16, 46);
+  scene.fog = new THREE.Fog(0xdfe7ee, 18, 62);
 
   const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.05, 100);
-  camera.position.set(4.8, 2.05, 5.3);
+  camera.position.set(4.7, 2.85, 5.55);
 
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.target.set(0, 0.62, 0);
@@ -44,31 +45,58 @@ function main() {
   const pmrem = new THREE.PMREMGenerator(renderer);
   scene.environment = pmrem.fromScene(new RoomEnvironment(renderer), 0.04).texture;
 
-  const hemi = new THREE.HemisphereLight(0xcfe0ef, 0x8d9095, 0.7);
+  const hemi = new THREE.HemisphereLight(0xcfe0ef, 0x8d9095, 0.48);
   scene.add(hemi);
-  const key = new THREE.DirectionalLight(0xffffff, 2.4);
+  const key = new THREE.DirectionalLight(0xffffff, 2.8);
   key.position.set(4.5, 7.5, 3.5);
   key.castShadow = true;
-  key.shadow.mapSize.set(1024, 1024);
+  key.shadow.mapSize.set(2048, 2048);
   key.shadow.camera.left = -3.6; key.shadow.camera.right = 3.6;
   key.shadow.camera.top = 3.6; key.shadow.camera.bottom = -3.6;
   key.shadow.camera.near = 1; key.shadow.camera.far = 22;
   key.shadow.bias = -0.0004; key.shadow.normalBias = 0.02;
   scene.add(key);
-  const fill = new THREE.DirectionalLight(0xdde8f2, 0.9);
+  const fill = new THREE.DirectionalLight(0xdde8f2, 0.65);
   fill.position.set(-5, 3.5, -5);
   scene.add(fill);
 
+  const groundTex = (() => {
+    const c = document.createElement('canvas'); c.width = c.height = 512;
+    const g2 = c.getContext('2d');
+    const rg = g2.createRadialGradient(256, 256, 50, 256, 256, 256);
+    rg.addColorStop(0, '#3a3e44');     rg.addColorStop(0.55, '#454a51'); rg.addColorStop(1, '#a9b4bd');
+    g2.fillStyle = rg; g2.fillRect(0, 0, 512, 512);
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+  })();
   const ground = new THREE.Mesh(new THREE.CircleGeometry(17, 48).rotateX(-Math.PI / 2),
-    new THREE.ShadowMaterial({ opacity: 0.32 }));
+    new THREE.MeshStandardMaterial({ map: groundTex, roughness: 0.95, metalness: 0, envMapIntensity: 0.22 }));
   ground.receiveShadow = true;
   ground.userData.noPick = true;
   scene.add(ground);
-  const grid = new THREE.GridHelper(34, 34, 0x9fb0bd, 0xc6d0d8);
-  grid.material.transparent = true;
-  grid.material.opacity = 0.32;
-  grid.position.y = 0.001;
-  scene.add(grid);
+  const aoTex = (() => {
+    const c = document.createElement('canvas'); c.width = c.height = 256;
+    const g2 = c.getContext('2d');
+    const rg = g2.createRadialGradient(128, 128, 10, 128, 128, 126);
+    rg.addColorStop(0, 'rgba(0,0,0,0.68)'); rg.addColorStop(0.55, 'rgba(0,0,0,0.34)'); rg.addColorStop(1, 'rgba(0,0,0,0)');
+    g2.fillStyle = rg; g2.fillRect(0, 0, 256, 256);
+    return new THREE.CanvasTexture(c);
+  })();
+  const aoBlob = new THREE.Mesh(new THREE.PlaneGeometry(7.4, 3.9).rotateX(-Math.PI / 2),
+    new THREE.MeshBasicMaterial({ map: aoTex, transparent: true, depthWrite: false }));
+  aoBlob.position.y = 0.005;
+  aoBlob.renderOrder = 1;
+  scene.add(aoBlob);
+  (() => {
+    const sc = document.createElement('canvas'); sc.width = 4; sc.height = 256;
+    const sg2 = sc.getContext('2d');
+    const grad = sg2.createLinearGradient(0, 0, 0, 256);
+    grad.addColorStop(0, '#b9cede'); grad.addColorStop(0.55, '#dfe7ee'); grad.addColorStop(1, '#eef1f3');
+    sg2.fillStyle = grad; sg2.fillRect(0, 0, 4, 256);
+    const st = new THREE.CanvasTexture(sc); st.colorSpace = THREE.SRGBColorSpace;
+    const dome = new THREE.Mesh(new THREE.SphereGeometry(70, 24, 16),
+      new THREE.MeshBasicMaterial({ map: st, side: THREE.BackSide, depthWrite: false, fog: false }));
+    scene.add(dome);
+  })();
 
   function honeyTex(repX, repY) {
     const c = document.createElement('canvas'); c.width = c.height = 256;
@@ -97,7 +125,7 @@ function main() {
   }
 
   const MAT = {
-    paint: new THREE.MeshStandardMaterial({ color: 0xe9ebee, roughness: 0.34, metalness: 0.22, transparent: true }),
+    paint: new THREE.MeshPhysicalMaterial({ color: 0xf1f3f5, roughness: 0.36, metalness: 0.12, clearcoat: 1.0, clearcoatRoughness: 0.08, transparent: true }),
     glass: new THREE.MeshStandardMaterial({ color: 0x10222e, roughness: 0.06, metalness: 0.5, transparent: true, opacity: 0.55, side: THREE.DoubleSide }),
     trim: new THREE.MeshStandardMaterial({ color: 0x131417, roughness: 0.7, transparent: true }),
     honey: new THREE.MeshStandardMaterial({ color: 0xffffff, map: honeyTex(3, 1), roughness: 0.6, metalness: 0.3, transparent: true, opacity: 0.92 }),
@@ -106,6 +134,8 @@ function main() {
     badge: new THREE.MeshStandardMaterial({ color: 0xd0021b, emissive: 0x550000, emissiveIntensity: 0.3, roughness: 0.35 }),
     rubber: new THREE.MeshStandardMaterial({ color: 0x151618, roughness: 0.95 }),
     gloss: new THREE.MeshStandardMaterial({ color: 0x101114, roughness: 0.25, metalness: 0.7 }),
+    rim: new THREE.MeshStandardMaterial({ color: 0x3a3f45, roughness: 0.26, metalness: 0.88 }),
+    rimDS: new THREE.MeshStandardMaterial({ color: 0x3a3f45, roughness: 0.26, metalness: 0.88, side: THREE.DoubleSide }),
     plastic: new THREE.MeshStandardMaterial({ color: 0x232529, roughness: 0.85 }),
     alu: new THREE.MeshStandardMaterial({ color: 0xbac0c6, roughness: 0.34, metalness: 0.85 }),
     aluDark: new THREE.MeshStandardMaterial({ color: 0x878d94, roughness: 0.5, metalness: 0.8 }),
@@ -118,7 +148,7 @@ function main() {
     chrome: new THREE.MeshStandardMaterial({ color: 0xe2e5e8, roughness: 0.1, metalness: 1.0 }),
     caliper: new THREE.MeshStandardMaterial({ color: 0xd2141a, roughness: 0.32 }),
     springM: new THREE.MeshStandardMaterial({ color: 0x9c1620, roughness: 0.45, metalness: 0.4 }),
-    biw: new THREE.MeshStandardMaterial({ color: 0xff8a2a, emissive: 0x7a3c00, emissiveIntensity: 0.4, transparent: true, opacity: 0, roughness: 0.5, depthWrite: false }),
+    biw: new THREE.MeshStandardMaterial({ color: 0x3a414b, roughness: 0.55, metalness: 0.4, transparent: true, opacity: 0, depthWrite: false }),
     seat: new THREE.MeshStandardMaterial({ color: 0xa81c2a, roughness: 0.85 }),
     seatDark: new THREE.MeshStandardMaterial({ color: 0x17181b, roughness: 0.9 }),
     screen: new THREE.MeshStandardMaterial({ color: 0x0a2038, emissive: 0x1c4e8a, emissiveIntensity: 0.6, roughness: 0.2 }),
@@ -133,6 +163,7 @@ function main() {
   const SHELL_MESHES = [];
   const PARTS = [];
   const EXP = [];
+  let glassGeo = null;
 
   function reg(mesh, parent, label, opt) {
     opt = opt || {};
@@ -219,6 +250,20 @@ function main() {
 
   const AXLE_F = 1.35, AXLE_R = -1.42, TRACK = 0.78;
 
+  function flankW(y, z) {
+    const t = (v, a, b) => THREE.MathUtils.clamp((v - a) / (b - a), 0, 1);
+    let ty;
+    if (y < 0.32) ty = lerp(0.945, 1, t(y, 0.16, 0.32));
+    else if (y < 0.86) ty = 1;
+    else if (y < 1.20) ty = lerp(1, 0.80, t(y, 0.86, 1.20));
+    else ty = lerp(0.80, 0.62, t(y, 1.20, 1.44));
+    const az = Math.abs(z);
+    const pl = az > 1.15 ? lerp(1, 0.885, t(az, 1.15, 2.38)) : 1;
+    const bulge = 0.030 * Math.exp(-Math.pow((z - AXLE_F) / 0.17, 2)) + 0.030 * Math.exp(-Math.pow((z + 1.42) / 0.17, 2));
+    const hiFade = 1 - t(y, 0.72, 1.05);
+    return 0.86 * ty * pl + 0.86 * bulge * hiFade;
+  }
+
   const bodyG = group(scene, V(0, 1.25, 0));
   const biwG = group(scene, V(0, 0.8, 0));
   biwG.userData.noPick = true;
@@ -247,37 +292,48 @@ function main() {
     sh.absarc(1.35, 0.30, 0.46, Math.PI, 0, true);
     sh.lineTo(2.16, 0.30);
     sh.closePath();
-    const g = new THREE.ExtrudeGeometry(sh, { depth: 1.54, bevelEnabled: true, bevelThickness: 0.09, bevelSize: 0.06, bevelSegments: 3, curveSegments: 24 });
-    g.translate(0, 0, -0.77);
-    g.rotateY(-Math.PI / 2);
-    reg(new THREE.Mesh(g, MAT.paint), bodyG, '车壳(Fastback 掀背溜背轮廓)', { shell: true });
+    let bg = new THREE.ExtrudeGeometry(sh, { depth: 1.54, bevelEnabled: true, bevelThickness: 0.09, bevelSize: 0.06, bevelSegments: 3, curveSegments: 24 });
+    bg.translate(0, 0, -0.77);
+    bg.rotateY(-Math.PI / 2);
+    bg.deleteAttribute('uv'); bg.deleteAttribute('normal');
+    bg = mergeVertices(bg, 1e-3);
+    const bp = bg.attributes.position;
+    for (let i = 0; i < bp.count; i++) {
+      bp.setX(i, bp.getX(i) * flankW(bp.getY(i), bp.getZ(i)) / 0.86);
+    }
+    bg.computeVertexNormals();
+    reg(new THREE.Mesh(bg, MAT.paint), bodyG, '车壳(Fastback 掀背溜背轮廓)', { shell: true });
 
     const sg = (() => {
       const s = new THREE.Shape();
       s.moveTo(0.32, 0.97); s.lineTo(0.03, 1.255); s.lineTo(-0.60, 1.28); s.lineTo(-1.10, 1.16);
       s.lineTo(-1.34, 0.985); s.lineTo(-1.02, 0.845); s.lineTo(-0.20, 0.845); s.closePath();
-      const gg = new THREE.ShapeGeometry(s, 12);
+      const gg = new THREE.ShapeGeometry(s, 14);
       gg.rotateY(-Math.PI / 2);
+      const gp = gg.attributes.position;
+      for (let i = 0; i < gp.count; i++) {
+        gp.setX(i, flankW(gp.getY(i), gp.getZ(i)) * 1.006 + 0.003);
+      }
+      gg.computeVertexNormals();
       return gg;
     })();
-    const gl = reg(new THREE.Mesh(sg, MAT.glass), bodyG, '侧窗玻璃', { shell: true, cast: false });
-    gl.position.x = -0.845;
+    const gl = reg(new THREE.Mesh(sg, MAT.glass), bodyG, '侧窗玻璃(曲面深灰)', { shell: true, cast: false });
+    gl.scale.x = -1;
     const gr = new THREE.Mesh(sg, MAT.glass);
-    gr.position.x = 0.845;
-    gr.scale.x = -1;
     gr.castShadow = false;
-    gr.userData.label = '侧窗玻璃';
+    gr.userData.label = '侧窗玻璃(曲面深灰)';
     PARTS.push(gr);
     SHELL_MESHES.push(gr);
     bodyG.add(gr);
+    glassGeo = sg;
 
-    const wsG = new THREE.PlaneGeometry(1.30, 0.50);
+    const wsG = new THREE.PlaneGeometry(1.10, 0.50);
     wsG.rotateX(-0.862);
     const ws = new THREE.Mesh(wsG, MAT.glass);
     ws.position.set(0, 1.15, 0.225);
     reg(ws, bodyG, '前风挡玻璃', { shell: true, cast: false });
 
-    const rgG = new THREE.PlaneGeometry(1.30, 0.64);
+    const rgG = new THREE.PlaneGeometry(1.10, 0.64);
     rgG.rotateX(-2.0);
     const rg = new THREE.Mesh(rgG, MAT.glass);
     rg.position.set(0, 1.15, -1.335);
@@ -286,19 +342,21 @@ function main() {
     box(1.05, 0.20, 0.05, MAT.honey, bodyG, 0, 0.62, 2.27, '蜂窝状前进气格栅', { shell: true });
     box(0.055, 0.045, 0.014, MAT.badge, bodyG, 0, 0.615, 2.301, '红色 Type R 徽标', { shell: true });
     box(1.15, 0.17, 0.05, MAT.honey, bodyG, 0, 0.36, 2.26, '前保险杠下部进气口', { shell: true });
-    box(0.20, 0.13, 0.05, MAT.honey, bodyG, 0.70, 0.40, 2.22, '前侧进气口', { shell: true });
-    box(0.20, 0.13, 0.05, MAT.honey, bodyG, -0.70, 0.40, 2.22, null, { shell: true });
-    box(0.36, 0.065, 0.10, MAT.lamp, bodyG, 0.53, 0.735, 2.19, '全LED前大灯', { shell: true, ry: -0.15 });
-    box(0.36, 0.065, 0.10, MAT.lamp, bodyG, -0.53, 0.735, 2.19, null, { shell: true, ry: 0.15 });
+    box(0.20, 0.13, 0.05, MAT.honey, bodyG, 0.64, 0.40, 2.22, '前侧进气口', { shell: true });
+    box(0.20, 0.13, 0.05, MAT.honey, bodyG, -0.64, 0.40, 2.22, null, { shell: true });
+    box(0.38, 0.07, 0.10, MAT.trim, bodyG, 0.53, 0.735, 2.19, '全LED前大灯(熏黑灯罩)', { shell: true, ry: -0.15 });
+    box(0.30, 0.018, 0.02, MAT.lamp, bodyG, 0.537, 0.742, 2.243, 'LED日行灯带', { shell: true, ry: -0.15, cast: false });
+    box(0.38, 0.07, 0.10, MAT.trim, bodyG, -0.53, 0.735, 2.19, null, { shell: true, ry: 0.15 });
+    box(0.30, 0.018, 0.02, MAT.lamp, bodyG, -0.537, 0.742, 2.243, null, { shell: true, ry: 0.15, cast: false });
     box(1.46, 0.026, 0.26, MAT.trim, bodyG, 0, 0.155, 2.26, '前唇扰流板', { shell: true });
 
     box(0.30, 0.05, 0.40, MAT.paint, bodyG, 0, 0.975, 0.78, '引擎盖进气口(Scoop)', { shell: true, rx: 0.10 });
     box(0.22, 0.016, 0.30, MAT.trim, bodyG, 0, 1.002, 0.77, null, { shell: true, rx: 0.10 });
-    box(1.15, 0.022, 0.16, MAT.trim, bodyG, 0, 1.062, 0.40, null, { shell: true });
+    box(1.02, 0.022, 0.16, MAT.trim, bodyG, 0, 1.062, 0.40, null, { shell: true });
 
-    box(0.44, 0.085, 0.06, MAT.lampR, bodyG, 0.60, 0.865, -2.27, 'LED组合式尾灯', { shell: true });
-    box(0.44, 0.085, 0.06, MAT.lampR, bodyG, -0.60, 0.865, -2.27, null, { shell: true });
-    box(0.52, 0.085, 0.04, MAT.trim, bodyG, 0, 0.865, -2.275, null, { shell: true });
+    box(0.40, 0.085, 0.06, MAT.lampR, bodyG, 0.52, 0.865, -2.27, 'LED组合式尾灯', { shell: true });
+    box(0.40, 0.085, 0.06, MAT.lampR, bodyG, -0.52, 0.865, -2.27, null, { shell: true });
+    box(0.44, 0.085, 0.04, MAT.trim, bodyG, 0, 0.865, -2.275, null, { shell: true });
     box(1.42, 0.16, 0.18, MAT.trim, bodyG, 0, 0.30, -2.22, '后扩散器区域', { shell: true });
     for (const fx of [-0.66, -0.42, 0.42, 0.66]) box(0.02, 0.15, 0.18, MAT.trim, bodyG, fx, 0.21, -2.24, null, { shell: true });
 
@@ -306,25 +364,25 @@ function main() {
     foilSh.moveTo(-0.155, 0);
     foilSh.quadraticCurveTo(-0.03, 0.034, 0.150, 0.010);
     foilSh.quadraticCurveTo(0.02, -0.020, -0.155, 0);
-    const foilG = new THREE.ExtrudeGeometry(foilSh, { depth: 1.36, bevelEnabled: false });
-    foilG.translate(0, 0, -0.68);
+    const foilG = new THREE.ExtrudeGeometry(foilSh, { depth: 1.26, bevelEnabled: false });
+    foilG.translate(0, 0, -0.63);
     foilG.rotateY(-Math.PI / 2);
     const foil = new THREE.Mesh(foilG, MAT.paint);
     foil.position.set(0, 1.24, -1.58);
     foil.rotation.x = -0.05;
     reg(foil, bodyG, '高位大尾翼(Type R 标志)', { shell: true });
-    box(0.03, 0.24, 0.44, MAT.paint, bodyG, 0.74, 1.14, -1.55, null, { shell: true });
-    box(0.03, 0.24, 0.44, MAT.paint, bodyG, -0.74, 1.14, -1.55, null, { shell: true });
-    box(0.016, 0.14, 0.32, MAT.trim, bodyG, 0.735, 1.24, -1.58, null, { shell: true });
-    box(0.016, 0.14, 0.32, MAT.trim, bodyG, -0.735, 1.24, -1.58, null, { shell: true });
+    box(0.03, 0.24, 0.44, MAT.paint, bodyG, 0.60, 1.14, -1.55, null, { shell: true });
+    box(0.03, 0.24, 0.44, MAT.paint, bodyG, -0.60, 1.14, -1.55, null, { shell: true });
+    box(0.016, 0.14, 0.32, MAT.trim, bodyG, 0.615, 1.24, -1.58, null, { shell: true });
+    box(0.016, 0.14, 0.32, MAT.trim, bodyG, -0.615, 1.24, -1.58, null, { shell: true });
 
-    tubeBetween(V(0.86, 0.96, 0.40), V(0.94, 0.975, 0.385), 0.012, undefined, MAT.paint, bodyG, null, { shell: true });
-    box(0.08, 0.075, 0.16, MAT.paint, bodyG, 0.945, 0.98, 0.38, '外后视镜', { shell: true });
-    tubeBetween(V(-0.86, 0.96, 0.40), V(-0.94, 0.975, 0.385), 0.012, undefined, MAT.paint, bodyG, null, { shell: true });
-    box(0.08, 0.075, 0.16, MAT.paint, bodyG, -0.945, 0.98, 0.38, null, { shell: true });
+    tubeBetween(V(0.70, 0.96, 0.40), V(0.775, 0.978, 0.385), 0.012, undefined, MAT.paint, bodyG, null, { shell: true });
+    box(0.085, 0.078, 0.16, MAT.paint, bodyG, 0.79, 0.982, 0.378, '外后视镜', { shell: true });
+    tubeBetween(V(-0.70, 0.96, 0.40), V(-0.775, 0.978, 0.385), 0.012, undefined, MAT.paint, bodyG, null, { shell: true });
+    box(0.085, 0.078, 0.16, MAT.paint, bodyG, -0.79, 0.982, 0.378, null, { shell: true });
 
-    box(0.05, 0.10, 1.85, MAT.trim, bodyG, 0.875, 0.275, 0.05, '侧裙', { shell: true });
-    box(0.05, 0.10, 1.85, MAT.trim, bodyG, -0.875, 0.275, 0.05, null, { shell: true });
+    box(0.05, 0.10, 1.78, MAT.trim, bodyG, 0.792, 0.275, 0.05, '侧裙', { shell: true });
+    box(0.05, 0.10, 1.78, MAT.trim, bodyG, -0.792, 0.275, 0.05, null, { shell: true });
     box(0.045, 0.04, 0.13, MAT.paint, bodyG, 0, 1.39, -0.72, '鲨鱼鳍天线', { shell: true });
 
     box(1.46, 0.024, 3.35, MAT.trim, bodyG, 0, 0.285, -0.02, '地板(白车身)', { shell: true, cast: false });
@@ -333,7 +391,7 @@ function main() {
   })();
 
   (function buildBiw() {
-    const T = (a, b, r) => tubeBetween(a, b, r || 0.014, undefined, MAT.biw, biwG, null, { cast: false });
+    const T = (a, b, r) => tubeBetween(a, b, r || 0.010, undefined, MAT.biw, biwG, null, { cast: false });
     for (const s of [1, -1]) {
       T(V(s * 0.60, 0.98, 0.40), V(s * 0.585, 1.30, 0.08));
       T(V(s * 0.60, 0.50, -0.34), V(s * 0.60, 1.27, -0.40));
@@ -347,7 +405,7 @@ function main() {
     T(V(-0.72, 0.35, 0.74), V(0.72, 0.35, 0.74));
     T(V(-0.72, 0.30, 0.02), V(0.72, 0.30, 0.02));
     T(V(-0.72, 0.35, -1.92), V(0.72, 0.35, -1.92));
-    T(V(0, 0.30, 0.95), V(0, 0.30, -1.30), 0.05);
+    T(V(0, 0.30, 0.95), V(0, 0.30, -1.30), 0.032);
     T(V(-0.66, 0.92, -2.0), V(0.66, 0.92, -2.0));
     T(V(-0.60, 0.96, -1.44), V(0.60, 0.96, -1.44));
   })();
@@ -531,26 +589,39 @@ function main() {
     EXP.push({ o: g, d: V(s * 0.55, 0, 0) });
     const tireG = new THREE.CylinderGeometry(0.335, 0.335, 0.245, 30, 1);
     tireG.rotateZ(Math.PI / 2);
-    reg(new THREE.Mesh(tireG, MAT.rubber), g, s * az > 0 ? '265/30 R19 米其林轮胎' : null, {});
+    reg(new THREE.Mesh(tireG, MAT.rubber), g, s * az > 0 ? '265/30 R19 半热熔胎' : null, {});
+    const swG = new THREE.TorusGeometry(0.283, 0.054, 10, 30);
+    swG.rotateY(Math.PI / 2);
+    const sw = new THREE.Mesh(swG, MAT.rubber);
+    sw.position.x = s * 0.058;
+    reg(sw, g, null, {});
     const barrelG = new THREE.CylinderGeometry(0.225, 0.225, 0.20, 24, 1, true);
     barrelG.rotateZ(Math.PI / 2);
-    const barrelMat = new THREE.MeshStandardMaterial({ color: 0x101114, roughness: 0.25, metalness: 0.7, side: THREE.DoubleSide });
-    reg(new THREE.Mesh(barrelG, barrelMat), g, '19寸锻造黑轮毂', {});
+    const barrel = new THREE.Mesh(barrelG, MAT.rimDS);
+    reg(barrel, g, '19寸锻造轮毂外圈', {});
+    const plateG = new THREE.CylinderGeometry(0.212, 0.212, 0.012, 24, 1);
+    plateG.rotateZ(Math.PI / 2);
+    const plate = new THREE.Mesh(plateG, MAT.plastic);
+    plate.position.x = -s * 0.015;
+    reg(plate, g, null, { cast: false });
     const lipG = new THREE.TorusGeometry(0.218, 0.016, 8, 28);
     lipG.rotateY(Math.PI / 2);
-    const lip = new THREE.Mesh(lipG, MAT.gloss);
+    const lip = new THREE.Mesh(lipG, MAT.rim);
     lip.position.x = s * 0.105;
     reg(lip, g, null, {});
-    for (let i = 0; i < 10; i++) {
-      const ang = i / 10 * Math.PI * 2;
-      const sp = new THREE.Mesh(new THREE.BoxGeometry(0.024, 0.165, 0.045), MAT.gloss);
-      sp.position.set(s * 0.10, 0.105 * Math.cos(ang), 0.105 * Math.sin(ang));
-      sp.rotation.x = ang;
-      reg(sp, g, null, { cast: false });
+    for (let i = 0; i < 5; i++) {
+      const baseAng = i / 5 * Math.PI * 2;
+      for (const off of [-0.14, 0.14]) {
+        const ang = baseAng + off;
+        const sp = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.185, 0.06), MAT.rim);
+        sp.position.set(s * 0.09, 0.115 * Math.cos(ang), 0.115 * Math.sin(ang));
+        sp.rotation.x = ang;
+        reg(sp, g, '19寸五辐双梁黑轮毂', { cast: false });
+      }
     }
     const hubG = new THREE.CylinderGeometry(0.055, 0.055, 0.03, 16, 1);
     hubG.rotateZ(Math.PI / 2);
-    const hub = new THREE.Mesh(hubG, MAT.gloss);
+    const hub = new THREE.Mesh(hubG, MAT.rim);
     hub.position.x = s * 0.095;
     reg(hub, g, null, {});
     const capG = new THREE.CylinderGeometry(0.019, 0.019, 0.008, 12, 1);
@@ -577,8 +648,8 @@ function main() {
     const o = lerp(1, 0.05, xrayV);
     SHELL_MATS.forEach(m => { m.opacity = o; m.depthWrite = o > 0.5; });
     for (const m of SHELL_MESHES) m.castShadow = o > 0.5;
-    MAT.biw.opacity = xrayV * 0.95;
-    MAT.biw.visible = xrayV > 0.02;
+    MAT.biw.opacity = Math.max(0, (xrayV - 0.3) / 0.7) * 0.92;
+    MAT.biw.visible = MAT.biw.opacity > 0.02;
   }
   function applyExplode(t) {
     explodeV = THREE.MathUtils.clamp(t, 0, 1);
@@ -598,7 +669,7 @@ function main() {
     controls.update();
   }
   const VIEWS = {
-    exterior() { setExplodeUI(0); setXrayUI(prevSavedXray = 0); camTo([4.8, 2.05, 5.3], [0, 0.62, 0]); },
+    exterior() { setExplodeUI(0); setXrayUI(prevSavedXray = 0); camTo([4.7, 2.85, 5.55], [0, 0.62, 0]); },
     engine() { setExplodeUI(0); setXrayUI(prevSavedXray = 0.85); camTo([1.25, 0.95, 2.45], [0, 0.55, 1.05]); },
     chassis() { setXrayUI(prevSavedXray = 0.25); setExplodeUI(0.55); camTo([2.6, 0.55, 3.3], [0, 0.28, 0]); },
     cabin() { setExplodeUI(0); setXrayUI(prevSavedXray = 0.8); camTo([2.9, 1.75, -3.3], [0, 0.55, -0.35]); }
@@ -628,7 +699,7 @@ function main() {
     { name: '回到外观 · Honda Civic Type R FL5', dur: 5, keys: [
       { p: [2.2, 0.55, -3.1], t: [0, 0.62, 0] },
       { p: [4.0, 1.8, 3.2], t: [0, 0.62, 0] },
-      { p: [4.8, 2.05, 5.3], t: [0, 0.62, 0] }], inside: false }
+      { p: [4.7, 2.85, 5.55], t: [0, 0.62, 0] }], inside: false }
   ];
   let touring = false, tourIdx = 0, tourStart = 0;
   function stationSample(st, u) {
@@ -672,7 +743,7 @@ function main() {
     controls.update();
   }
   btnTour.addEventListener('click', () => touring ? stopTour() : startTour());
-  btnReset.addEventListener('click', () => { if (touring) stopTour(); setXrayUI(0); setExplodeUI(0); camTo([4.8, 2.05, 5.3], [0, 0.62, 0]); });
+  btnReset.addEventListener('click', () => { if (touring) stopTour(); setXrayUI(0); setExplodeUI(0); camTo([4.7, 2.85, 5.55], [0, 0.62, 0]); });
 
   const raycaster = new THREE.Raycaster();
   const ndc = new THREE.Vector2();
@@ -722,6 +793,36 @@ function main() {
       raycaster.setFromCamera(new THREE.Vector2(nx, ny), camera);
       const hits = raycaster.intersectObjects(PARTS.filter(m => m.visible), false);
       return hits.slice(0, 3).map(h => h.object.userData.label).filter(Boolean);
+    },
+    glassInfo() {
+      if (!glassGeo) return null;
+      const p = glassGeo.attributes.position;
+      let minX = 9, maxX = -9;
+      for (let i = 0; i < p.count; i++) {
+        const x = p.getX(i);
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+      }
+      return { bendX: +(maxX - minX).toFixed(4), halfW: +maxX.toFixed(4) };
+    },
+    debugScene() {
+      let meshes = 0;
+      scene.traverse(o => { if (o.isMesh) meshes++; });
+      return {
+        meshes,
+        shadowsEnabled: renderer.shadowMap.enabled,
+        shadowMapSize: key.shadow.mapSize.x,
+        aoVisible: aoBlob.visible,
+        groundReceive: ground.receiveShadow,
+        keyCast: key.castShadow
+      };
+    },
+    toggleAO() { aoBlob.visible = !aoBlob.visible; return aoBlob.visible; },
+    dbg(flag) {
+      if (flag === 'ground') { ground.visible = !ground.visible; return ground.visible; }
+      if (flag === 'aoScale') { aoBlob.scale.setScalar(aoBlob.scale.x > 1 ? 1 : 40); return aoBlob.scale.x; }
+      if (flag === 'aoColor') { aoBlob.material.color.set(0xff0000); return true; }
+      return null;
     }
   };
 

@@ -73,3 +73,30 @@ node serve.js
 - 截图 FPS≈8 为 headless SwiftShader 软渲染所致;真机 GPU 该面数(<33k 三角)轻松 60FPS。
 - CDN 依赖 unpkg.com(three@0.160.0),断网时页面停留在加载提示。
 - 每次修改 app.js 需同步 bump `index.html` 中的 `?v=` 版本号。
+
+---
+
+# 过夜打磨 ROUND A(v4→v10)— 外观曲面化 · 车漆 · 车轮 · 场景
+
+## 改动清单
+1. **车身曲面化**:ExtrudeGeometry 焊接顶点(mergeVertices)后逐顶点侧向缩放——上窄下宽的 Tumblehome、前后端面收窄(plan taper)、双轴轮拱肌肉鼓包,computeVertexNormals 平滑着色。轮廓不再是直棱盒子。
+2. **侧窗曲面玻璃**:ShapeGeometry 顶点按同一 flankW() 函数弯曲贴合车身,深灰半透;api.glassInfo() 实测 bendX=0.225(真实曲率非平板)。
+3. **车漆质感**:MeshPhysicalMaterial 冠军白 + clearcoat 1.0 / clearcoatRoughness .08,配合 RoomEnvironment 反射。
+4. **大灯升级**:熏黑灯罩 + LED 日行灯带;尾灯/中饰板随新鼻锥收窄对位。
+5. **车轮重做**:五辐双梁粗辐条(rim 金属深灰)、空心轮毂外圈+内背板、Torus 胎肩圆角、红色中心盖保留。
+6. **地面/天空**:径向渐变深色哑光地台(envMapIntensity .22)+ 车底接触阴影 AO 贴片 + 渐变天穹;删除 GridHelper;主光 2.8/hemi .48 提升阴影对比,阴影贴图 2048。
+7. **黄色杆件清除**:BiW 框架改深灰(#3a414b)、半径 .010、X光 >0.3 才渐显,不再喧宾夺主。
+
+## 验证(v10 实测)
+| 项目 | 结果 |
+|---|---|
+| console error / pageerror | ✅ 0 / 0 |
+| console warning | 4 条 `GPU stall due to ReadPixels` —— 已用"纯浏览不截图"对照实验与三种 ANGLE 启动参数复现,确认是 headless 测试环境帧回读的驱动提示,**页面代码自身零输出** |
+| 黄色穿模像素(四视角) | ✅ 0-3 px(噪声级) |
+| 侧窗曲率 glassInfo.bendX | ✅ 0.225(>0.05 即为曲面) |
+| 接触阴影梯度 | ✅ 全帧差分(AO on/off)峰值 −42 亮度,集中于车底轮廓周围,平滑衰减 |
+| 三角形 | 35,998 < 500k ✅ |
+| 可点选零件 | 169 个 |
+
+截图:`shots/shot-{exterior,engine,chassis,cabin,tour}-v10.png`
+

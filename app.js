@@ -417,11 +417,25 @@ function main() {
     box(0.17, 0.10, 0.025, MAT.screen, interiorG, 0, 0.82, 0.47, '中控屏幕');
     box(0.24, 0.09, 0.03, MAT.cluster, interiorG, -0.36, 0.845, 0.47, '液晶仪表');
 
-    const sw = torus(0.105, 0.017, MAT.seatDark, interiorG, -0.36, 0.735, 0.50, '方向盘(红色回正标)', { rs: 10, ts: 24, rx: -0.35 });
+    const sw = torus(0.105, 0.017, MAT.seatDark, interiorG, -0.36, 0.735, 0.50, '平底方向盘(红色回正标)', { rs: 10, ts: 24, arc: Math.PI * 1.62, rx: -0.35 });
     const mark = new THREE.Mesh(new THREE.BoxGeometry(0.016, 0.02, 0.012), MAT.vcover);
     mark.position.set(-0.36, 0.837, 0.464);
     mark.rotation.x = -0.35;
     reg(mark, interiorG, null, { cast: false });
+    const chord = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.022, 0.075), MAT.seatDark);
+    chord.position.set(-0.36, 0.638, 0.528);
+    chord.rotation.x = -0.35;
+    reg(chord, interiorG, null, { cast: false });
+    const spokeL = new THREE.Mesh(new THREE.BoxGeometry(0.026, 0.09, 0.016), MAT.seatDark);
+    spokeL.position.set(-0.42, 0.72, 0.512);
+    spokeL.rotation.x = -0.35;
+    spokeL.rotation.z = 0.35;
+    reg(spokeL, interiorG, null, { cast: false });
+    const spokeR = new THREE.Mesh(new THREE.BoxGeometry(0.026, 0.09, 0.016), MAT.seatDark);
+    spokeR.position.set(-0.30, 0.72, 0.512);
+    spokeR.rotation.x = -0.35;
+    spokeR.rotation.z = -0.35;
+    reg(spokeR, interiorG, null, { cast: false });
     tubeBetween(V(-0.36, 0.72, 0.53), V(-0.36, 0.82, 0.62), 0.018, undefined, MAT.plastic, interiorG, null, { cast: false });
 
     box(0.14, 0.14, 0.90, MAT.plastic, interiorG, 0, 0.40, -0.05, '中央通道');
@@ -432,8 +446,12 @@ function main() {
     reg(knob, interiorG, '6MT 手动换挡杆');
 
     function seat(x, zFront) {
-      box(0.30, 0.10, 0.30, MAT.seat, interiorG, x, 0.47, zFront, '一体化运动桶椅');
-      box(0.28, 0.44, 0.09, MAT.seat, interiorG, x, 0.695, zFront + 0.17, null, { rx: -0.16 });
+      box(0.30, 0.10, 0.30, MAT.seatDark, interiorG, x, 0.47, zFront, 'Recaro 风格运动桶椅');
+      box(0.20, 0.024, 0.26, MAT.seat, interiorG, x, 0.527, zFront, null, { cast: false });
+      box(0.055, 0.095, 0.30, MAT.seatDark, interiorG, x + 0.155, 0.505, zFront, null, { cast: false });
+      box(0.055, 0.095, 0.30, MAT.seatDark, interiorG, x - 0.155, 0.505, zFront, null, { cast: false });
+      box(0.28, 0.44, 0.09, MAT.seatDark, interiorG, x, 0.695, zFront + 0.17, null, { rx: -0.16 });
+      box(0.19, 0.34, 0.03, MAT.seat, interiorG, x, 0.70, zFront + 0.125, null, { rx: -0.16, cast: false });
       box(0.15, 0.10, 0.05, MAT.seatDark, interiorG, x, 0.955, zFront + 0.14, null, { rx: -0.16 });
     }
     seat(0.36, 0.16);
@@ -449,8 +467,15 @@ function main() {
     box(0.365, 0.10, 0.30, MAT.aluDark, engineG, -0.02, 0.585, 1.00, '气缸盖(DOHC i-VTEC)');
     box(0.34, 0.075, 0.28, MAT.vcover, engineG, -0.02, 0.66, 1.00, '红色气门室盖(Type R 标志)');
     for (let i = 0; i < 4; i++) box(0.36, 0.012, 0.03, MAT.vcover, engineG, -0.02, 0.703, 0.92 + i * 0.053, null, { cast: false });
+    for (let i = 0; i < 4; i++) cyl(0.017, 0.017, 0.012, 10, MAT.aluDark, engineG, -0.02, 0.706, 0.90 + i * 0.068, i === 0 ? '点火线圈位' : null, { cast: false });
     cyl(0.035, 0.035, 0.03, 12, MAT.alu, engineG, -0.12, 0.712, 0.94, '机油加注口盖', {});
     box(0.30, 0.10, 0.09, MAT.alu, engineG, -0.02, 0.57, 0.79, '进气歧管稳压腔');
+    const plL = new THREE.Mesh(new THREE.SphereGeometry(0.049, 14, 12), MAT.alu);
+    plL.position.set(-0.17, 0.57, 0.79);
+    reg(plL, engineG, null, { cast: false });
+    const plR = new THREE.Mesh(new THREE.SphereGeometry(0.049, 14, 12), MAT.alu);
+    plR.position.set(0.13, 0.57, 0.79);
+    reg(plR, engineG, null, { cast: false });
     for (let i = 0; i < 4; i++) {
       const xi = -0.13 + i * 0.085;
       pipe([V(xi, 0.55, 0.80), V(xi, 0.565, 0.845), V(xi, 0.58, 0.86)], 0.015, MAT.aluDark, engineG, i === 0 ? '进气歧管歧管' : null, { cast: false });
@@ -459,6 +484,8 @@ function main() {
     box(0.30, 0.095, 0.26, MAT.iron, engineG, -0.02, 0.282, 1.00, '油底壳');
     cyl(0.065, 0.065, 0.04, 18, MAT.aluDark, engineG, -0.02, 0.36, 1.165, '曲轴皮带轮', { axis: 'Z' });
     cyl(0.006, 0.006, 0.12, 6, MAT.yellow, engineG, 0.12, 0.52, 1.12, '机油尺', { rz: 0.35 });
+    cyl(0.045, 0.045, 0.075, 14, MAT.aluDark, engineG, -0.30, 0.48, 1.17, '发电机', { axis: 'Z' });
+    cyl(0.024, 0.024, 0.03, 10, MAT.chrome, engineG, -0.30, 0.48, 1.225, null, { axis: 'Z', cast: false });
     box(0.07, 0.09, 0.09, MAT.iron, engineG, 0.26, 0.40, 1.00, '发动机悬置');
     box(0.07, 0.09, 0.09, MAT.iron, engineG, -0.30, 0.40, 1.00, null);
     tubeBetween(V(-0.56, 0.755, 1.30), V(0.56, 0.755, 1.30), 0.018, undefined, MAT.steel, engineG, '前塔顶加强杆(顶吧)');
@@ -524,8 +551,9 @@ function main() {
     box(0.36, 0.17, 0.44, MAT.steel, exhaustG, 0, 0.235, -1.55, '后消音器');
     for (const tx of [-0.11, 0, 0.11]) {
       tubeBetween(V(tx, 0.24, -1.77), V(tx, 0.255, -2.22), 0.036, undefined, MAT.steel, exhaustG, null, { cast: false });
-      cyl(0.038, 0.038, 0.16, 16, MAT.chrome, exhaustG, tx, 0.255, -2.30, tx === 0 ? '中置三出排气尾喉(中央)' : '三出尾喉');
-      cyl(0.028, 0.028, 0.012, 12, MAT.gloss, exhaustG, tx, 0.255, -2.372, null, { axis: 'Z', cast: false });
+      cyl(0.042, 0.042, 0.16, 16, MAT.chrome, exhaustG, tx, 0.255, -2.30, tx === 0 ? '中置三出排气尾喉(中央)' : '三出尾喉', { axis: 'Z', open: true });
+      cyl(0.031, 0.031, 0.145, 12, MAT.gloss, exhaustG, tx, 0.255, -2.292, null, { axis: 'Z' });
+      torus(0.041, 0.006, MAT.chrome, exhaustG, tx, 0.255, -2.378, null, { cast: false });
     }
   })();
 
@@ -664,6 +692,7 @@ function main() {
   exSlider.addEventListener('input', () => applyExplode(exSlider.value / 100));
 
   function camTo(p, t) {
+    introDone = true;
     camera.position.set(p[0], p[1], p[2]);
     controls.target.set(t[0], t[1], t[2]);
     controls.update();
@@ -702,6 +731,11 @@ function main() {
       { p: [4.7, 2.85, 5.55], t: [0, 0.62, 0] }], inside: false }
   ];
   let touring = false, tourIdx = 0, tourStart = 0;
+  let userTouched = false, introDone = false, introT0 = 0;
+  const introFrom = V(9.8, 4.9, 11.0), introTo = V(4.7, 2.85, 5.55);
+  const tmpV = new THREE.Vector3();
+  controls.autoRotate = true;
+  controls.autoRotateSpeed = 0.7;
   function stationSample(st, u) {
     if (st.orbit) {
       const e = ease(u), o = st.orbit;
@@ -741,6 +775,7 @@ function main() {
     setXrayUI(prevSavedXray);
     controls.target.copy(lastTarget);
     controls.update();
+    controls.autoRotate = !userTouched;
   }
   btnTour.addEventListener('click', () => touring ? stopTour() : startTour());
   btnReset.addEventListener('click', () => { if (touring) stopTour(); setXrayUI(0); setExplodeUI(0); camTo([4.7, 2.85, 5.55], [0, 0.62, 0]); });
@@ -749,7 +784,9 @@ function main() {
   const ndc = new THREE.Vector2();
   let downXY = null;
   let tipTimer = null;
-  renderer.domElement.addEventListener('pointerdown', e => { downXY = [e.clientX, e.clientY]; });
+  let tipMesh = null;
+  renderer.domElement.addEventListener('pointerdown', e => { downXY = [e.clientX, e.clientY]; userTouched = true; introDone = true; controls.autoRotate = false; });
+  renderer.domElement.addEventListener('wheel', () => { userTouched = true; introDone = true; controls.autoRotate = false; }, { passive: true });
   renderer.domElement.addEventListener('pointerup', e => {
     if (!downXY) return;
     const dx = e.clientX - downXY[0], dy = e.clientY - downXY[1];
@@ -765,13 +802,14 @@ function main() {
       return true;
     });
     const hits = raycaster.intersectObjects(pool, false);
-    if (!hits.length) { tipEl.style.display = 'none'; return; }
+    if (!hits.length) { tipEl.style.display = 'none'; tipMesh = null; return; }
+    tipMesh = hits[0].object;
     tipEl.textContent = hits[0].object.userData.label;
     tipEl.style.display = 'block';
     tipEl.style.left = Math.min(e.clientX + 14, window.innerWidth - tipEl.offsetWidth - 12) + 'px';
     tipEl.style.top = Math.max(e.clientY - 40, 10) + 'px';
     clearTimeout(tipTimer);
-    tipTimer = setTimeout(() => { tipEl.style.display = 'none'; }, 2600);
+    tipTimer = setTimeout(() => { tipEl.style.display = 'none'; tipMesh = null; }, 2600);
   });
 
   window.addEventListener('resize', () => {
@@ -843,9 +881,25 @@ function main() {
           lastTarget.set(s.t[0], s.t[1], s.t[2]);
           camera.lookAt(lastTarget);
         }
+      } else if (!introDone) {
+        if (!introT0) introT0 = now;
+        const u = Math.min((now - introT0) / 3200, 1);
+        const e = 1 - Math.pow(1 - u, 3);
+        camera.position.lerpVectors(introFrom, introTo, e);
+        controls.target.set(0, 0.62, 0);
+        lastTarget.copy(controls.target);
+        camera.lookAt(lastTarget);
+        if (u >= 1) introDone = true;
       } else {
         controls.update();
         lastTarget.copy(controls.target);
+      }
+      if (tipEl.style.display === 'block' && tipMesh) {
+        tmpV.setFromMatrixPosition(tipMesh.matrixWorld).project(camera);
+        const sx = (tmpV.x + 1) / 2 * window.innerWidth;
+        const sy = (1 - tmpV.y) / 2 * window.innerHeight;
+        tipEl.style.left = Math.min(Math.max(sx + 12, 8), window.innerWidth - tipEl.offsetWidth - 8) + 'px';
+        tipEl.style.top = Math.min(Math.max(sy - 40, 8), window.innerHeight - 50) + 'px';
       }
       if (FL5.errs.length < 40) {
         renderer.render(scene, camera);

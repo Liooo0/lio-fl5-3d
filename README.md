@@ -2,9 +2,10 @@
 
 An interactive, fully procedural 3D cutaway model of the Honda Civic Type R (FL5) built with **Three.js** — no external 3D model files, every mesh generated in code.
 
-![Exterior](shots/shot-exterior-v11.png)
-![Engine Bay](shots/shot-engine-v11.png)
-![Chassis](shots/shot-chassis-v11.png)
+![Exterior](shots/shot-exterior-release.png)
+![Engine Bay](shots/shot-engine-release.png)
+![Chassis](shots/shot-chassis-release.png)
+![Cabin](shots/shot-cabin-release.png)
 
 ## Features
 
@@ -27,7 +28,11 @@ No build step, no npm install. Three.js loads via CDN importmap (unpkg).
 
 ## Online (GitHub Pages)
 
-Push to `gh-pages` branch or enable Pages from `main` — everything is static.
+No build step needed — the repo root is the site. Once GitHub Pages is enabled on `main` (/), the model is live at:
+
+**https://liooo0.github.io/lio-fl5-3d/**
+
+Note: Three.js loads from the unpkg CDN, so an internet connection is required even for the Pages deployment.
 
 ## Tech Notes
 
@@ -39,7 +44,11 @@ Push to `gh-pages` branch or enable Pages from `main` — everything is static.
 
 ## License
 
-MIT — this is a non-commercial fan project. Honda and Type R are trademarks of Honda Motor Co.; this project is not affiliated with or endorsed by Honda.
+Distributed under the [MIT License](LICENSE).
+
+## Disclaimer
+
+This is an unofficial, non-commercial fan project. It is not affiliated with, sponsored, or endorsed by Honda Motor Co., Ltd. Honda, Civic, and Type R are trademarks of Honda Motor Co., Ltd. All geometry is original procedural approximation built for illustration purposes.
 
 ## Verification
 

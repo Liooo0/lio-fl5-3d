@@ -2,10 +2,10 @@
 
 日期:2026-08-25 · 版本:`app.js?v=3` · 全部检查由 Playwright(headless chromium)对 `http://127.0.0.1:8790/index.html?v=3` 实测得出。
 
-## 运行方式(lio 看这里)
+## 运行方式
 
 ```bash
-cd ~/projects/fl5-3d
+cd fl5-3d   # 项目根目录
 node serve.js
 # 浏览器打开 http://localhost:8790
 ```

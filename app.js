@@ -40,7 +40,7 @@ function main() {
   const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.05, 100);
   const composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
-  const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth * 0.5, window.innerHeight * 0.5), 0.38, 0.3, 0.9);
+  const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth * 0.5, window.innerHeight * 0.5), 0.26, 0.22, 0.93);
   composer.addPass(bloom);
   composer.addPass(new OutputPass());
   camera.position.set(4.7, 2.85, 5.55);
@@ -1179,12 +1179,19 @@ function main() {
         if (m.map) m.map.anisotropy = 4;
         const nm = (m.name || '') + ' ';
         if (/interior|seatbelt|window/i.test(nm)) {
+          if (!m.userData.env0) { m.userData.env0 = m.envMapIntensity !== undefined ? m.envMapIntensity : 1; }
+          m.envMapIntensity = Math.min(m.userData.env0, 0.32);
+          if (m.roughness !== undefined) m.roughness = Math.max(m.roughness, 0.32);
           m.transparent = true;
           if (!GLB_FADE_MATS.includes(m)) GLB_FADE_MATS.push(m);
         } else if (shellKeys.test(nm)) {
+          if (!m.userData.env0) { m.userData.env0 = m.envMapIntensity !== undefined ? m.envMapIntensity : 1; }
           if (/(Paint_Material|Coloured_Material|Base_Material)$/i.test(m.name.trim())) {
             m.color.set(0xc22730);
+            m.envMapIntensity = Math.min(m.userData.env0, 0.42);
             tinted++;
+          } else {
+            m.envMapIntensity = Math.min(m.userData.env0, 0.55);
           }
           m.transparent = true;
           if (!GLB_SHELL_MATS.includes(m)) GLB_SHELL_MATS.push(m);

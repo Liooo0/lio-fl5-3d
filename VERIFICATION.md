@@ -287,3 +287,25 @@ console error=0 · pageerror=0 · 对齐 stats 正常 · 三角形 ~1.03M(GLB)
 | 回归 | console error=0;热点/UI 正常 |
 
 截图:`shots/shot-{exterior,top}-v25.png` + 四张 release 官方图(已覆盖,镜像 shots/release/)
+
+---
+
+# v7/v7b 痛车涂装系统(v27)
+
+## 架构(v7 基座本轮随 v7b 一并落地)
+- Paint/Coloured/Base 三材质 onBeforeCompile 注入世界坐标侧投影:法线 |x|>0.55 的侧面按 (z,y)∈[(-2.34,2.36)×(0.28,1.30)] 采样条带纹理(ClampToEdge——车顶/底盘自然延展条带边缘色),非侧面用条带底缘平均色×漆面明暗
+- 纯 shader 叠加,不改原 map/color;关闭即 uLiveryOn=0 完整还原;X光透明度路径独立不受影响
+- 款式:N4 几何切割 / N3 声波纹 / N1 细红线(CanvasTexture 程序化)+ 霞之丘诗羽(livery/utaha.png 2048×570)+ 樱岛麻衣(mai.png 2048×578)
+
+## 验收(v27)
+| 项 | 结果 |
+|---|---|
+| 角色纹理装载 | ✅ [2048,570] |
+| 冻结相机像素差(off↔utaha, 车身带) | ✅ **21.5** 均值通道差(旋转噪声已排除) |
+| 暗区占比变化 | ✅ 49.02%→52.33%(黑发角色区) |
+| 款式状态机 | ✅ utaha→mai→n4→off 循环 stats.livery 全部正确 |
+| X光0.4 涂装淡出 | ✅ 透明度路径独立生效(截图两张) |
+| console/pageerror | ✅ 0 / 0 |
+
+版权:README Liveries 节注明角色版权归原权利方、用户自产粉丝作品仅限非商用展示。
+截图:`shots/shot-{utaha,mai}-{45,xray}-v27.png` + `shot-{n4,livery-off2}-v27.png`

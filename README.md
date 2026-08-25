@@ -42,6 +42,10 @@ Note: Three.js loads from the unpkg CDN, so an internet connection is required e
 - ~38k triangles, PCFSoft shadows (2048 map), ACES tone mapping
 - rAF loop wrapped in try/catch with `window.__fl5` test interface
 
+## Liveries
+
+The abstract livery styles (N4 / N3 / N1) are procedurally generated. The two character itasha liveries (霞之丘诗羽 / Utaha Kasumigaoka from *Saenai Heroine no Sodatekata*, 樱岛麻衣 / Mai Sakurajima from *Seishun Buta Yarou*) are **user-made fan art projections, non-commercial display only**. All character rights belong to their respective original copyright holders (FNx A-1 Pictures / Kadokawa; CloverWorks / Kadokawa). Honda and Type R remain trademarks of Honda Motor Co.
+
 ## License
 
 Code distributed under the [MIT License](LICENSE).

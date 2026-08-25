@@ -52,9 +52,9 @@ The realistic exterior shell used in v3.0+ is based on ["Honda Civic Type R FL5 
 
 - **BY** — blakebella is credited here and in the in-app "About" panel.
 - **NC** — this project is and remains non-commercial. Commercial use of the shell model is not permitted.
-- **ND** — the original GLB is not redistributed or sold; only runtime loading from your own legally-obtained copy.
+- **ND** — only the unmodified original GLB is redistributed (runtime paint/grouping changes are code-side, the file itself is untouched); modified versions of the mesh are not distributed.
 - Internal mechanical components (engine, turbo, transmission, suspension, exhaust) remain original procedural geometry from this project, MIT licensed.
-- To run with the realistic shell: place your own copy at `models/fl5.glb` — without it, the app falls back to the fully procedural body.
+- The shell GLB ships with the repository so the realistic body works out-of-the-box on GitHub Pages.
 
 ## Disclaimer
 

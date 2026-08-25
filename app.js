@@ -1171,7 +1171,7 @@ function main() {
       }
     });
 
-    const wp = wheelMeshes.map
+    const wp = [];
     for (const o of wheelMeshes) {
       const bb = new THREE.Box3().setFromObject(o);
       if (bb.isEmpty()) continue;

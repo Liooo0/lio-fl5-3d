@@ -136,6 +136,7 @@ function main() {
     gloss: new THREE.MeshStandardMaterial({ color: 0x101114, roughness: 0.25, metalness: 0.7 }),
     rim: new THREE.MeshStandardMaterial({ color: 0x3a3f45, roughness: 0.26, metalness: 0.88 }),
     rimDS: new THREE.MeshStandardMaterial({ color: 0x3a3f45, roughness: 0.26, metalness: 0.88, side: THREE.DoubleSide }),
+    spoke: new THREE.MeshStandardMaterial({ color: 0xb0b6bd, roughness: 0.22, metalness: 0.95 }),
     plastic: new THREE.MeshStandardMaterial({ color: 0x232529, roughness: 0.85 }),
     alu: new THREE.MeshStandardMaterial({ color: 0xbac0c6, roughness: 0.34, metalness: 0.85 }),
     aluDark: new THREE.MeshStandardMaterial({ color: 0x878d94, roughness: 0.5, metalness: 0.8 }),
@@ -623,46 +624,45 @@ function main() {
     const sw = new THREE.Mesh(swG, MAT.rubber);
     sw.position.x = s * 0.058;
     reg(sw, g, null, {});
-    const barrelG = new THREE.CylinderGeometry(0.225, 0.225, 0.20, 24, 1, true);
+    const faceX = s * 0.128;
+    const barrelG = new THREE.CylinderGeometry(0.225, 0.225, 0.14, 24, 1, true);
     barrelG.rotateZ(Math.PI / 2);
     const barrel = new THREE.Mesh(barrelG, MAT.rimDS);
+    barrel.position.x = s * 0.03;
     reg(barrel, g, '19寸锻造轮毂外圈', {});
     const plateG = new THREE.CylinderGeometry(0.212, 0.212, 0.012, 24, 1);
     plateG.rotateZ(Math.PI / 2);
     const plate = new THREE.Mesh(plateG, MAT.plastic);
-    plate.position.x = -s * 0.015;
+    plate.position.x = s * 0.045;
     reg(plate, g, null, { cast: false });
     const lipG = new THREE.TorusGeometry(0.218, 0.016, 8, 28);
     lipG.rotateY(Math.PI / 2);
     const lip = new THREE.Mesh(lipG, MAT.rim);
-    lip.position.x = s * 0.105;
+    lip.position.x = faceX;
     reg(lip, g, null, {});
     for (let i = 0; i < 5; i++) {
-      const baseAng = i / 5 * Math.PI * 2;
-      for (const off of [-0.14, 0.14]) {
-        const ang = baseAng + off;
-        const sp = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.185, 0.06), MAT.rim);
-        sp.position.set(s * 0.09, 0.115 * Math.cos(ang), 0.115 * Math.sin(ang));
-        sp.rotation.x = ang;
-        reg(sp, g, '19寸五辐双梁黑轮毂', { cast: false });
-      }
+      const ang = i / 5 * Math.PI * 2;
+      const sp = new THREE.Mesh(new THREE.BoxGeometry(0.048, 0.21, 0.062), MAT.spoke);
+      sp.position.set(faceX, 0.115 * Math.cos(ang), 0.115 * Math.sin(ang));
+      sp.rotation.x = ang;
+      reg(sp, g, '19寸五辐抛光银轮毂', { cast: false });
     }
-    const hubG = new THREE.CylinderGeometry(0.055, 0.055, 0.03, 16, 1);
+    const hubG = new THREE.CylinderGeometry(0.055, 0.055, 0.035, 16, 1);
     hubG.rotateZ(Math.PI / 2);
-    const hub = new THREE.Mesh(hubG, MAT.rim);
-    hub.position.x = s * 0.095;
+    const hub = new THREE.Mesh(hubG, MAT.spoke);
+    hub.position.x = faceX + s * 0.008;
     reg(hub, g, null, {});
-    const capG = new THREE.CylinderGeometry(0.019, 0.019, 0.008, 12, 1);
+    const capG = new THREE.CylinderGeometry(0.024, 0.024, 0.012, 12, 1);
     capG.rotateZ(Math.PI / 2);
     const cap = new THREE.Mesh(capG, MAT.vcover);
-    cap.position.x = s * 0.112;
-    reg(cap, g, '轮毂中心盖', { cast: false });
+    cap.position.x = faceX + s * 0.028;
+    reg(cap, g, '红色R标轮毂中心盖', { cast: false });
     for (let i = 0; i < 5; i++) {
       const ang = i / 5 * Math.PI * 2 + 0.31;
       const lugG = new THREE.CylinderGeometry(0.011, 0.011, 0.02, 8, 1);
       lugG.rotateZ(Math.PI / 2);
       const lug = new THREE.Mesh(lugG, MAT.chrome);
-      lug.position.set(s * 0.108, 0.032 * Math.cos(ang), 0.032 * Math.sin(ang));
+      lug.position.set(faceX + s * 0.012, 0.032 * Math.cos(ang), 0.032 * Math.sin(ang));
       reg(lug, g, null, { cast: false });
     }
     scene.add(g);

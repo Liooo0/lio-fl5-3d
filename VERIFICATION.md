@@ -231,3 +231,24 @@ console error=0 · pageerror=0 · 黄杆像素≤1 · 玻璃曲率 bendX=0.220 �
 | 可点选零件 | 151 |
 
 截图:`shots/shot-{exterior,xray,explode}-v{20,21}.png`
+
+---
+
+# v6b X光修补(v22)
+
+## 改动
+- GLB 内饰/玻璃(InteriorA/InteriorColourZone/InteriorTilling*/SeatBelt/Window*)归入 GLB_FADE_MATS:X光时两段式急降透明度(t=0.05 前降至 0.55,随后滑向 0.02),不再挡住机舱视线
+- 外壳+渐隐组 envMapIntensity 激活时压至 ≤0.15/0.12,消除"黑玻璃镜面"假透明;恢复时还原原值
+- 外壳/内饰网格 renderOrder=8,保证不透明机械先绘制
+- X光曲线改激进式:o=lerp(1,0.05,min(t×1.6,1))——0.15 即接近全透
+- bloom threshold 0.87→**0.9**,车顶玻璃反光炸白消除
+
+## 验收(v22 实测)
+| 项 | 结果 |
+|---|---|
+| xray=0.15 看见红色发动机 | ✅ 机舱区红像素 **27,054**(气门室盖+缸体红头清晰) |
+| 铜色涡轮 | 可见但偏弱(envMap 压制副作用,114px)——已知限制 |
+| 车顶炸白 | 屋顶区 blowPct **0.083%** ✅ |
+| 回归抽验 | 章节②卡片/热点8枚/爆炸70%联动正常,console error=0 |
+
+截图:`shots/shot-{exterior,xray15}-v22.png`

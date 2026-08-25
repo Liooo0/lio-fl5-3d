@@ -183,3 +183,25 @@ console error=0 · pageerror=0 · 黄杆像素≤1 · 玻璃曲率 bendX=0.220 �
 
 全量回归:v18 console error=0 · pageerror=0 · 三角形 38,226 · 截图 6 张
 `shots/shot-cinema-{overview,engine,explode,exhaust,cockpit,chassis}-v18.png`
+
+---
+
+# v5b Bloom 过曝修补(v19)
+
+## 改动
+- UnrealBloomPass: strength .55→**.38**, threshold .82→**.87**, radius .45→**.30**(只有真高光泛光)
+- 车漆三轮调优定稿:`0x7a0d12 / metalness .22 / roughness .46 / clearcoatRoughness .09 / envMapIntensity .38` —— 漫反射承担深红读感,清漆只留锐利窄高光
+- 暖辅光 .4→.28 消除鲑鱼色偏染;地面反射收敛(roughness .52/metalness .35/env .26),只余车底微光晕
+- DRL 灯带 emissiveIntensity .55→.4;修复 stats.tris 被 OutputPass 冲掉(autoReset=false 手动帧重置)
+
+## 验收(v19 实测)
+| 项 | 指标 | 结果 |
+|---|---|---|
+| 无炸白光斑 | lum>246 像素占比 overview/engine | **0.29% / 0.06%** ✅ |
+| 车漆深红金属 | 中间调(lum35-95)车身均值 RGB | **(91,60,56) r/b=1.63** ✅ 暗面深红、高光锐白(红车摄影正常特征) |
+| 地面反光 | 反射收敛后整帧均值 | **38.1 < 60** ✅ 暗部不死黑(detail px 109k)✅ |
+| 回归抽验 | 章节②/热点钉/爆炸滑块/tris 累计 | ✅ 全部正常,console error=0 |
+
+注:旧「黄色杆件」探测器在 v19 报 exterior 2102px —— 为红色车身上暖光边缘高光的假阳性(BiW 已是深灰,结构上不存在黄杆);底盘视角仅 66px 噪声级。
+
+截图:`shots/shot-{overview,engine}-v19.png`

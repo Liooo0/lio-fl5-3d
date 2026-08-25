@@ -26,6 +26,7 @@ function main() {
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 0.84;
+  renderer.info.autoReset = false;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   document.body.appendChild(renderer.domElement);
@@ -38,7 +39,7 @@ function main() {
   const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.05, 100);
   const composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
-  const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth * 0.5, window.innerHeight * 0.5), 0.55, 0.45, 0.82);
+  const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth * 0.5, window.innerHeight * 0.5), 0.38, 0.3, 0.87);
   composer.addPass(bloom);
   composer.addPass(new OutputPass());
   camera.position.set(4.7, 2.85, 5.55);
@@ -72,7 +73,7 @@ function main() {
   key.shadow.camera.near = 1; key.shadow.camera.far = 22;
   key.shadow.bias = -0.0004; key.shadow.normalBias = 0.02;
   scene.add(key);
-  const fill = new THREE.DirectionalLight(0xffd9a8, 0.4);
+  const fill = new THREE.DirectionalLight(0xffd9a8, 0.28);
   fill.position.set(-5, 3.5, -5);
   scene.add(fill);
   const rim = new THREE.DirectionalLight(0x6f9fff, 1.15);
@@ -88,7 +89,7 @@ function main() {
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
   })();
   const ground = new THREE.Mesh(new THREE.CircleGeometry(17, 48).rotateX(-Math.PI / 2),
-    new THREE.MeshStandardMaterial({ map: groundTex, roughness: 0.34, metalness: 0.5, envMapIntensity: 0.42 }));
+    new THREE.MeshStandardMaterial({ map: groundTex, roughness: 0.52, metalness: 0.35, envMapIntensity: 0.26 }));
   ground.receiveShadow = true;
   ground.userData.noPick = true;
   scene.add(ground);
@@ -144,11 +145,11 @@ function main() {
   }
 
   const MAT = {
-    paint: new THREE.MeshPhysicalMaterial({ color: 0x8a0f14, roughness: 0.34, metalness: 0.45, clearcoat: 1.0, clearcoatRoughness: 0.07, transparent: true }),
+    paint: new THREE.MeshPhysicalMaterial({ color: 0x7a0d12, roughness: 0.46, metalness: 0.22, clearcoat: 1.0, clearcoatRoughness: 0.09, transparent: true, envMapIntensity: 0.38 }),
     glass: new THREE.MeshStandardMaterial({ color: 0x10222e, roughness: 0.06, metalness: 0.5, transparent: true, opacity: 0.55, side: THREE.DoubleSide }),
     trim: new THREE.MeshStandardMaterial({ color: 0x131417, roughness: 0.7, transparent: true }),
     honey: new THREE.MeshStandardMaterial({ color: 0xffffff, map: honeyTex(3, 1), roughness: 0.6, metalness: 0.3, transparent: true, opacity: 0.92 }),
-    lamp: new THREE.MeshStandardMaterial({ color: 0xcfe4f2, emissive: 0x9fc4dd, emissiveIntensity: 0.55, roughness: 0.2, transparent: true }),
+    lamp: new THREE.MeshStandardMaterial({ color: 0xcfe4f2, emissive: 0x9fc4dd, emissiveIntensity: 0.4, roughness: 0.2, transparent: true }),
     lampR: new THREE.MeshStandardMaterial({ color: 0xa01420, emissive: 0xc41d2c, emissiveIntensity: 0.7, roughness: 0.3, transparent: true }),
     badge: new THREE.MeshStandardMaterial({ color: 0xd0021b, emissive: 0x550000, emissiveIntensity: 0.3, roughness: 0.35 }),
     rubber: new THREE.MeshStandardMaterial({ color: 0x151618, roughness: 0.95 }),
@@ -1119,6 +1120,7 @@ function main() {
       particles.visible = particlesActive;
       stepParticles(0.016);
       if (FL5.errs.length < 40) {
+        renderer.info.reset();
         composer.render();
         labelRenderer.render(scene, camera);
         frames++;

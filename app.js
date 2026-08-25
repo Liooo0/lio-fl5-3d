@@ -6,6 +6,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 
 const FL5 = window.__fl5;
 const errPush = m => { FL5.errs.push(String(m).slice(0, 300)); if (FL5.errs.length > 50) FL5.errs.length = 50; };
@@ -51,6 +52,11 @@ function main() {
   controls.maxPolarAngle = Math.PI * 0.55;
 
   try { controls.zoomToCursor = true; } catch (_) {}
+
+  const labelRenderer = new CSS2DRenderer();
+  labelRenderer.setSize(window.innerWidth, window.innerHeight);
+  Object.assign(labelRenderer.domElement.style, { position: 'fixed', top: '0', left: '0', pointerEvents: 'none', zIndex: '9' });
+  document.body.appendChild(labelRenderer.domElement);
 
   const pmrem = new THREE.PMREMGenerator(renderer);
   scene.environment = pmrem.fromScene(new RoomEnvironment(renderer), 0.04).texture;
@@ -180,6 +186,7 @@ function main() {
   const PARTS = [];
   const EXP = [];
   let glassGeo = null;
+  const PINS = [];
 
   function reg(mesh, parent, label, opt) {
     opt = opt || {};
@@ -685,6 +692,15 @@ function main() {
   }
   makeWheel(1, AXLE_F); makeWheel(-1, AXLE_F); makeWheel(1, AXLE_R); makeWheel(-1, AXLE_R);
 
+  makePin(0, engineG, -0.02, 0.80, 1.00);
+  makePin(1, turboG, 0.115, 0.58, 1.315);
+  makePin(2, chargeG, 0, 0.56, 1.74);
+  makePin(3, driveG, -0.52, 0.60, 0.985);
+  makePin(4, suspG, 0.605, 0.585, 1.31);
+  makePin(5, suspG, 0.72, 0.47, 1.245);
+  makePin(6, exhaustG, 0, 0.37, -2.30);
+  makePin(7, interiorG, 0, 1.02, -0.66);
+
   let xrayV = 0, explodeV = 0, prevSavedXray = 0;
   function applyXray(t) {
     xrayV = THREE.MathUtils.clamp(t, 0, 1);
@@ -703,7 +719,7 @@ function main() {
   const $ = id => document.getElementById(id);
   const xrSlider = $('xr'), exSlider = $('ex'), btnTour = $('btnTour'), btnReset = $('btnReset');
   const stationEl = $('station'), tipEl = $('tip'), loaderEl = $('loader'), errBox = $('errbox');
-  xrSlider.addEventListener('input', () => { if (!touring) { prevSavedXray = xrSlider.value / 100; } applyXray(xrSlider.value / 100); });
+  xrSlider.addEventListener('input', () => { if (!touring && !tween) { prevSavedXray = xrSlider.value / 100; } applyXray(xrSlider.value / 100); });
   exSlider.addEventListener('input', () => applyExplode(exSlider.value / 100));
 
   function camTo(p, t) {
@@ -720,6 +736,110 @@ function main() {
   };
   function setXrayUI(v) { xrSlider.value = Math.round(v * 100); applyXray(v); }
   function setExplodeUI(v) { exSlider.value = Math.round(v * 100); applyExplode(v); }
+
+  const CHAPTERS = [
+    { name: '外观总览', en: 'OVERVIEW', pos: [4.7, 2.85, 5.55], tgt: [0, 0.62, 0], xray: 0, explode: 0,
+      desc: '竞速红金属漆车身,Type R 空力套件一应俱全:前唇、侧裙、巨型尾翼与中置三出排气。',
+      chips: ['FL5 · 前驱钢炮', '6速手动', '320PS'] },
+    { name: 'K20C1 发动机', en: 'ENGINE', pos: [1.15, 0.95, 2.45], tgt: [-0.02, 0.55, 1.02], xray: 0.88, explode: 0,
+      desc: '2.0T 直列四缸,i-VTEC 双可变气门正时。强化曲轴与轻量活塞,红线 7000rpm 迸发 320 马力。',
+      chips: ['320PS/6500rpm', '420N·m', 'i-VTEC'] },
+    { name: '涡轮增压系统', en: 'TURBO SYSTEM', pos: [1.05, 0.72, 2.35], tgt: [0.12, 0.45, 1.5], xray: 0.9, explode: 0,
+      desc: '单涡管涡轮集成电泄压阀,高温废气驱动叶轮,增压空气经前置中冷器冷却后灌入燃烧室。',
+      chips: ['单涡管涡轮', '电泄压阀', '前置中冷'] },
+    { name: '6MT 传动', en: 'TRANSMISSION', pos: [-2.3, 0.95, 1.75], tgt: [-0.5, 0.42, 1.0], xray: 0.82, explode: 0.22,
+      desc: '横置 6 速手动变速箱与发动机并排布局,短行程换挡配合自动补油,动力零损耗直达前轮。',
+      chips: ['6MT 手动', 'Rev Match', '限滑差速器'] },
+    { name: '悬挂系统', en: 'SUSPENSION', pos: [2.5, 0.55, 3.0], tgt: [0.55, 0.35, 0.2], xray: 0.45, explode: 0.45,
+      desc: '前双球头麦弗逊搭配后多连杆,自适应阻尼减震器毫秒级调节,弯中姿态干净利落。',
+      chips: ['双球头麦弗逊', '多连杆', '自适应阻尼'] },
+    { name: '制动系统', en: 'BRAKES', pos: [1.95, 0.5, 2.4], tgt: [0.76, 0.37, 1.34], xray: 0.15, explode: 0,
+      desc: 'Brembo 对向四活塞卡钳钳制大尺寸通风盘,19 寸锻造轮毂辐条间清晰可见红色卡钳。',
+      chips: ['Brembo 4活塞', '通风盘', '265/30 R19'] },
+    { name: '排气系统', en: 'EXHAUST', pos: [0.9, 0.5, -3.3], tgt: [0, 0.27, -2.3], xray: 0.75, explode: 0,
+      desc: '中置三出排气是 Type R 的标志性符号,电控阀门低转静音、高转全开,声浪浑厚纯粹。',
+      chips: ['中置三出', '电控阀门', '粒子演示'], fx: true },
+    { name: '底盘与座舱', en: 'CHASSIS & COCKPIT', pos: [2.9, 1.75, -3.3], tgt: [0, 0.55, -0.35], xray: 0.8, explode: 0.3,
+      desc: '白车身关键部位结构粘接增强,抗扭刚性大幅提升;红黑桶椅与平底方向盘营造战斗座舱。',
+      chips: ['车身刚性增强', 'Recaro 桶椅', '平底方向盘'] }
+  ];
+
+  let tween = null;
+  function tweenCam(pos, tgt, xr, ex, dur, done) {
+    introDone = true;
+    if (touring) stopTour();
+    tween = { t0: performance.now(), dur: dur || 1600, p0: camera.position.clone(), q0: controls.target.clone(),
+      p1: V(pos[0], pos[1], pos[2]), t1: V(tgt[0], tgt[1], tgt[2]), xr0: xrayV, ex0: explodeV, xr1: xr, ex1: ex, done };
+    controls.enabled = false;
+    controls.autoRotate = false;
+  }
+
+  let activeChapter = -1, demoMode = false, particlesActive = false;
+  const cardEl = document.getElementById('infoCard');
+  const navRow = document.getElementById('navRow');
+  const btnDemo = document.getElementById('btnDemo');
+  const navCount = document.getElementById('chCount');
+  const dotsWrap = document.getElementById('navDots');
+  const dotEls = [];
+  for (let i = 0; i < 8; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot';
+    d.addEventListener('click', () => gotoChapter(i));
+    dotsWrap.appendChild(d);
+    dotEls.push(d);
+  }
+  function setCard(i) {
+    const c = CHAPTERS[i];
+    cardEl.innerHTML = '<div class="ch">章节 ' + (i + 1) + ' / 8 · <span class="en">' + c.en + '</span></div>' +
+      '<h3>' + (i + 1) + '. ' + c.name + '</h3><p>' + c.desc + '</p>' +
+      '<div class="chips">' + c.chips.map(x => '<span class="chip">' + x + '</span>').join('') + '</div>';
+  }
+  function refreshNav() {
+    dotEls.forEach((d, k) => d.classList.toggle('on', k === activeChapter));
+    navCount.textContent = activeChapter >= 0 ? (activeChapter + 1) + '/8' : '-/8';
+    PINS.forEach(p => p.el.classList.toggle('active', p.idx === activeChapter));
+  }
+  function setPins(v) { PINS.forEach(p => p.o.visible = v); }
+  function gotoChapter(i) {
+    demoMode = true;
+    btnDemo.textContent = '⏹ 退出演示';
+    navRow.style.display = 'flex';
+    activeChapter = i;
+    const c = CHAPTERS[i];
+    setCard(i);
+    cardEl.classList.add('on');
+    particlesActive = !!c.fx;
+    setPins(true);
+    tweenCam(c.pos, c.tgt, c.xray, c.explode, 1600, () => refreshNav());
+    refreshNav();
+  }
+  function exitChapter() {
+    activeChapter = -1;
+    particlesActive = false;
+    cardEl.classList.remove('on');
+    refreshNav();
+  }
+  btnDemo.addEventListener('click', () => {
+    if (!demoMode) gotoChapter(0);
+    else { demoMode = false; btnDemo.textContent = '▶ 拆解演示'; exitChapter(); }
+  });
+  window.addEventListener('keydown', e => {
+    if (!demoMode) return;
+    if (e.key === 'ArrowRight') gotoChapter((activeChapter + 1) % 8);
+    else if (e.key === 'ArrowLeft') gotoChapter((activeChapter + 7) % 8);
+  });
+
+  function makePin(idx, parent, x, y, z) {
+    const el = document.createElement('div');
+    el.className = 'pin';
+    el.textContent = String(idx + 1);
+    el.addEventListener('click', ev => { ev.stopPropagation(); gotoChapter(idx); });
+    const o = new CSS2DObject(el);
+    o.position.set(x, y, z);
+    parent.add(o);
+    PINS.push({ idx, el, o });
+  }
+
 
   const TOUR = [
     { name: '外观 · 整车环绕', dur: 9, orbit: { c: [0, 0.62, 0], a0: 2.4, a1: -2.4, r0: 6.4, r1: 5.2, y0: 2.3, y1: 1.5 }, inside: false },
@@ -777,6 +897,7 @@ function main() {
   }
   function startTour() {
     touring = true;
+    setPins(false);
     btnTour.textContent = '⏸ 退出运镜';
     controls.enabled = false;
     enterStation(0);
@@ -791,6 +912,7 @@ function main() {
     controls.target.copy(lastTarget);
     controls.update();
     controls.autoRotate = !userTouched;
+    setPins(true);
   }
   btnTour.addEventListener('click', () => touring ? stopTour() : startTour());
   btnReset.addEventListener('click', () => { if (touring) stopTour(); setXrayUI(0); setExplodeUI(0); camTo([4.7, 2.85, 5.55], [0, 0.62, 0]); });
@@ -833,6 +955,7 @@ function main() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     composer.setSize(window.innerWidth, window.innerHeight);
     bloom.setSize(window.innerWidth * 0.5, window.innerHeight * 0.5);
+    labelRenderer.setSize(window.innerWidth, window.innerHeight);
   });
 
   const lastTarget = new THREE.Vector3(0, 0.62, 0);
@@ -878,14 +1001,33 @@ function main() {
       if (flag === 'aoScale') { aoBlob.scale.setScalar(aoBlob.scale.x > 1 ? 1 : 40); return aoBlob.scale.x; }
       if (flag === 'aoColor') { aoBlob.material.color.set(0xff0000); return true; }
       return null;
-    }
+    },
+    chapter(i) { gotoChapter(i); },
+    demo(on) {
+      if (on) gotoChapter(0);
+      else { demoMode = false; btnDemo.textContent = '▶ 拆解演示'; exitChapter(); controls.enabled = true; tween = null; }
+    },
+    chapterIdx: () => activeChapter,
+    particlesOn: () => particlesActive,
+    pinsCount: () => PINS.length
   };
 
   let frames = 0, lastStat = performance.now(), readySent = false;
   function tick(now) {
     requestAnimationFrame(tick);
     try {
-      if (touring) {
+      if (tween) {
+        let u = Math.min((now - tween.t0) / tween.dur, 1);
+        const e = u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+        camera.position.lerpVectors(tween.p0, tween.p1, e);
+        lastTarget.lerpVectors(tween.q0, tween.t1, e);
+        camera.lookAt(lastTarget);
+        applyXray(lerp(tween.xr0, tween.xr1, e));
+        applyExplode(lerp(tween.ex0, tween.ex1, e));
+        xrSlider.value = Math.round(xrayV * 100);
+        exSlider.value = Math.round(explodeV * 100);
+        if (u >= 1) { controls.target.copy(tween.t1); controls.enabled = true; const d = tween.done; tween = null; if (d) d(); }
+      } else if (touring) {
         const st = TOUR[tourIdx];
         let u = (now - tourStart) / (st.dur * 1000);
         if (u >= 1) {
@@ -920,6 +1062,7 @@ function main() {
       }
       if (FL5.errs.length < 40) {
         composer.render();
+        labelRenderer.render(scene, camera);
         frames++;
         if (now - lastStat >= 1000) {
           FL5.stats.fps = frames;

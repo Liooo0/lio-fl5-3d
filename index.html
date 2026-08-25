@@ -35,6 +35,37 @@
     box-shadow:0 4px 14px rgba(0,0,0,.35)}
   #tip:before{content:"";position:absolute;left:50%;bottom:-5px;transform:translateX(-50%);
     border:5px solid transparent;border-top-color:rgba(225,6,0,.92);border-bottom:none}
+  #infoCard{position:absolute;left:16px;top:128px;width:272px;padding:14px 16px;display:none;z-index:11}
+  #infoCard.on{display:block}
+  #infoCard .ch{font-size:10.5px;color:#8fb4ff;letter-spacing:1.5px}
+  #infoCard .ch .en{color:#7a8ba0}
+  #infoCard h3{margin:5px 0 6px;font-size:16px;color:#fff;letter-spacing:.5px}
+  #infoCard p{margin:0 0 9px;font-size:12px;line-height:1.6;color:#c6d3e2}
+  .chips{display:flex;flex-wrap:wrap;gap:5px}
+  .chip{font-size:10.5px;padding:3px 9px;border-radius:20px;border:1px solid rgba(140,180,255,.35);
+    color:#a8c4ff;background:rgba(30,58,110,.35)}
+  #navWrap{position:absolute;left:50%;bottom:52px;transform:translateX(-50%);
+    display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none;z-index:11}
+  #navWrap>*{pointer-events:auto}
+  #btnDemo{padding:9px 26px;border:none;border-radius:22px;background:rgba(225,6,0,.88);color:#fff;
+    font-size:13.5px;font-weight:700;letter-spacing:2px;cursor:pointer;
+    box-shadow:0 4px 18px rgba(225,6,0,.35)}
+  #btnDemo:hover{filter:brightness(1.15)}
+  #navRow{display:flex;align-items:center;gap:12px;padding:9px 16px;border-radius:24px}
+  #navRow button{background:none;border:none;color:#dfe7f2;cursor:pointer;font-size:14px;padding:2px 5px;line-height:1}
+  #navRow button:hover{color:#ff4b3e}
+  #navDots{display:flex;gap:7px}
+  .dot{width:9px;height:9px;border-radius:50%;background:rgba(140,170,220,.35);cursor:pointer;transition:.2s}
+  .dot:hover{background:rgba(160,190,240,.7)}
+  .dot.on{background:#e10600;box-shadow:0 0 8px rgba(225,6,0,.85)}
+  #chCount{font-size:12.5px;color:#c6d3e2;min-width:34px;text-align:center}
+  .pin{width:25px;height:25px;border-radius:50%;background:rgba(18,42,90,.92);
+    border:1px solid rgba(140,180,255,.55);color:#eaf1ff;font-size:13px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;pointer-events:auto;
+    box-shadow:0 0 10px rgba(60,130,255,.55);transform:translate(-50%,-50%);
+    transition:transform .18s,box-shadow .18s;font-family:inherit;user-select:none}
+  .pin:hover{transform:translate(-50%,-50%) scale(1.28)}
+  .pin.active{background:#e10600;border-color:rgba(255,150,140,.8);box-shadow:0 0 16px rgba(255,60,40,.95)}
   #loader{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
     background:#05070d;color:#cfd8df;z-index:99;flex-direction:column;gap:14px}
   #loader .spin{width:38px;height:38px;border:3px solid rgba(255,255,255,.15);
@@ -84,7 +115,17 @@
   <div id="station" class="card"></div>
   <div id="hint"><b>左键拖拽</b> 旋转 · <b>滚轮</b> 推进镜头 · <b>右键拖拽</b> 平移 · <b>点击零件</b> 显示名称</div>
   <div id="tip"></div>
+  <div id="infoCard" class="card"></div>
+  <div id="navWrap">
+    <button id="btnDemo" class="card">▶ 拆解演示</button>
+    <div id="navRow" class="card" style="display:none">
+      <button id="navPrev" title="上一章">◀</button>
+      <div id="navDots"></div>
+      <span id="chCount">-/8</span>
+      <button id="navNext" title="下一章">▶</button>
+    </div>
+  </div>
 </div>
-<script type="module" src="app.js?v=15"></script>
+<script type="module" src="app.js?v=16"></script>
 </body>
 </html>

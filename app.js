@@ -704,6 +704,47 @@ function main() {
   makePin(6, exhaustG, 0, 0.37, -2.30);
   makePin(7, interiorG, 0, 1.02, -0.66);
 
+  const PN = 420;
+  const pGeo = new THREE.BufferGeometry();
+  const pPos = new Float32Array(PN * 3);
+  const pVel = new Float32Array(PN * 3);
+  const pLife = new Float32Array(PN);
+  function spawnP(i) {
+    const tipX = [-0.11, 0, 0.11][i % 3];
+    pPos[i * 3] = tipX + (Math.random() - 0.5) * 0.05;
+    pPos[i * 3 + 1] = 0.255 + (Math.random() - 0.5) * 0.05;
+    pPos[i * 3 + 2] = -2.38 - Math.random() * 0.05;
+    pVel[i * 3] = (Math.random() - 0.5) * 0.25 + tipX * 1.2;
+    pVel[i * 3 + 1] = 0.15 + Math.random() * 0.35;
+    pVel[i * 3 + 2] = -(0.9 + Math.random() * 0.9);
+    pLife[i] = 0.6 + Math.random() * 0.5;
+  }
+  for (let i = 0; i < PN; i++) { spawnP(i); pPos[i * 3 + 2] += Math.random() * 1.2; }
+  pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+  const pMat = new THREE.PointsMaterial({ color: 0xffc890, size: 0.02, transparent: true, opacity: 0.85,
+    blending: THREE.AdditiveBlending, depthWrite: false });
+  const particles = new THREE.Points(pGeo, pMat);
+  particles.visible = false;
+  particles.frustumCulled = false;
+  exhaustG.add(particles);
+  let pAccum = 0;
+  function stepParticles(dt) {
+    if (!particlesActive || !particles.visible) return;
+    pAccum += dt;
+    for (let i = 0; i < PN; i++) {
+      pLife[i] -= dt;
+      pPos[i * 3] += pVel[i * 3] * dt;
+      pPos[i * 3 + 1] += pVel[i * 3 + 1] * dt;
+      pPos[i * 3 + 2] += pVel[i * 3 + 2] * dt;
+      pVel[i * 3 + 1] -= dt * 0.12;
+      if (pLife[i] <= 0 || pPos[i * 3 + 2] < -3.6) {
+        spawnP(i);
+        if (pAccum > 0.1 && Math.random() < 0.35) { pLife[i] = -1; pPos[i * 3 + 2] = -99; }
+      }
+    }
+    pGeo.attributes.position.needsUpdate = true;
+  }
+
   let xrayV = 0, explodeV = 0, prevSavedXray = 0;
   function applyXray(t) {
     xrayV = THREE.MathUtils.clamp(t, 0, 1);
@@ -1075,6 +1116,8 @@ function main() {
         tipEl.style.left = Math.min(Math.max(sx + 12, 8), window.innerWidth - tipEl.offsetWidth - 8) + 'px';
         tipEl.style.top = Math.min(Math.max(sy - 40, 8), window.innerHeight - 50) + 'px';
       }
+      particles.visible = particlesActive;
+      stepParticles(0.016);
       if (FL5.errs.length < 40) {
         composer.render();
         labelRenderer.render(scene, camera);

@@ -1,9 +1,10 @@
 BRIEF*.md
-POLISH_DONE
-REPORT.md
-ROUND*.md
-WHEELS_DONE
-overnight*.log
 overnight*.sh
+overnight*.log
 v4.sh
 v5.sh
+v5b.sh
+WHEELS_DONE
+BLOOM_DONE
+CINEMA_DONE
+ROUND*.md

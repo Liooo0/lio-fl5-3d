@@ -1121,6 +1121,14 @@ function main() {
     const shellKeys = /paint|coloured|carbon|base_material|grille|light|licenseplate|badge/i;
     const rimKey = /rim/i, tireKey = /toyo/i, discKey = /brakedisc/i;
     const wheelMeshes = [];
+    const matNames = new Set();
+    let tinted = 0;
+    root.traverse(o => {
+      if (!o.isMesh) return;
+      const mm = Array.isArray(o.material) ? o.material : [o.material];
+      for (const m of mm) matNames.add(m.name || '(noname)');
+    });
+    FL5.stats.glbMats = [...matNames].slice(0, 40);
     root.traverse(o => {
       if (!o.isMesh) return;
       o.castShadow = true;
@@ -1130,6 +1138,10 @@ function main() {
         if (m.map) m.map.anisotropy = 4;
         const nm = (m.name || '') + ' ';
         if (shellKeys.test(nm)) {
+          if (/(Paint_Material|Coloured_Material|Base_Material)$/i.test(m.name.trim())) {
+            m.color.set(0xc22730);
+            tinted++;
+          }
           m.transparent = true;
           if (!GLB_SHELL_MATS.includes(m)) GLB_SHELL_MATS.push(m);
         } else if (rimKey.test(nm) || tireKey.test(nm) || discKey.test(nm)) {
@@ -1226,6 +1238,7 @@ function main() {
       PINS[7].o.position.copy(root.worldToLocal(wp7));
     }
 
+    FL5.stats.glbTinted = tinted;
     shellMode = 'glb';
     FL5.shellMode = 'glb';
   }

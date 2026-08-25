@@ -1129,6 +1129,36 @@ function main() {
     root.scale.setScalar(4.59 / size.z);
     root.updateMatrixWorld(true);
 
+    try {
+      const gAcc = { n: 0, z: 0 }, pAcc = { n: 0, z: 0 };
+      const tmpB = new THREE.Box3();
+      root.traverse(o => {
+        if (!o.isMesh) return;
+        const mm = Array.isArray(o.material) ? o.material : [o.material];
+        const isG = mm.some(m => /grille/i.test(m.name || ''));
+        const isP = mm.some(m => /licenseplate/i.test(m.name || ''));
+        if (!isG && !isP) return;
+        tmpB.setFromObject(o);
+        if (tmpB.isEmpty()) return;
+        const c = tmpB.getCenter(new THREE.Vector3());
+        if (isG) { gAcc.z += c.z; gAcc.n++; }
+        if (isP) { pAcc.z += c.z; pAcc.n++; }
+        if (!FL5.stats.glbOrientDbg) FL5.stats.glbOrientDbg = [];
+        if (FL5.stats.glbOrientDbg.length < 8) FL5.stats.glbOrientDbg.push({ n: (mm[0].name || '').slice(-26), z: +c.z.toFixed(2), y: +c.y.toFixed(2) });
+      });
+      if (gAcc.n && pAcc.n) {
+        const gz = gAcc.z / gAcc.n, pz = pAcc.z / pAcc.n;
+        FL5.stats.glbOrient = { grilleZ: +gz.toFixed(2), plateZ: +pz.toFixed(2), flipped: pz > gz };
+        if (pz > gz) {
+          root.rotation.y += Math.PI;
+          root.updateMatrixWorld(true);
+          FL5.stats.glbFlipped = true;
+        }
+      } else {
+        FL5.stats.glbOrient = { skipped: 'no grille/plate meshes' };
+      }
+    } catch (e) { errPush('glb orient: ' + e.message); }
+
     const shellKeys = /paint|coloured|carbon|base_material|grille|light|licenseplate|badge/i;
     const rimKey = /rim/i, tireKey = /toyo/i, discKey = /brakedisc/i;
     const wheelMeshes = [];

@@ -252,3 +252,18 @@ console error=0 · pageerror=0 · 黄杆像素≤1 · 玻璃曲率 bendX=0.220 �
 | 回归抽验 | 章节②卡片/热点8枚/爆炸70%联动正常,console error=0 |
 
 截图:`shots/shot-{exterior,xray15}-v22.png`
+
+---
+
+# v6c 车头朝向修复 + 官方图更新(v24)
+
+## 朝向判定与修复
+- 判据:GLB 材质分区质心——格栅系(车头)vs LicensePlate(车尾)。实测翻转前 grilleZ=-0.58 / plateZ=+2.16(牌照在场景前端=装反)→ 自动 `rotation.y += π`
+- 翻转后 GLB 车头(+Z)与程序化发动机/涡轮同侧,排气尾喉(-2.3)对准真车尾三出口;轮位对齐逻辑在旋转后重新计算(wb 仍 2.73)
+- 证据:`stats.glbOrient={grilleZ:-0.58,plateZ:2.16,flipped:true}`;俯视图 shot-orient-top-v24.png + 45° shot-exterior-v24.png
+
+## README 官方图重制(真外壳+暗棚)
+shot-{exterior,engine,chassis,cabin}-release.png 全部以 shellMode='glb' 重截,并镜像至 shots/release/;章节抽验:②机舱相机 [1.15,0.95,2.45] ✅ ·⑦排气 [0.9,0.5,-3.3]+粒子激活 ✅
+
+## 回归
+console error=0 · pageerror=0 · 对齐 stats 正常 · 三角形 ~1.03M(GLB)

@@ -291,7 +291,9 @@ function main() {
   const biwG = group(scene, V(0, 0.8, 0));
   biwG.userData.noPick = true;
   const interiorG = group(scene, V(0, 0.62, 0));
+  interiorG.userData.rot = ['y', 0.05];
   const engineG = group(scene, V(0, 0.34, 0));
+  engineG.userData.rot = ['z', -0.07];
   const turboG = group(scene, V(0.10, 0.28, 0.20));
   const chargeG = group(scene, V(0, 0.05, 0.70));
   const coolingG = group(scene, V(0, 0.12, 1.12));
@@ -637,6 +639,7 @@ function main() {
     const g = new THREE.Group();
     g.position.set(s * TRACK, 0.335, az);
     g.userData.basePos = g.position.clone();
+    g.userData.rot = ['x', s * 0.55];
     EXP.push({ o: g, d: V(s * 0.55, 0, 0) });
     const tireG = new THREE.CylinderGeometry(0.335, 0.335, 0.245, 30, 1);
     tireG.rotateZ(Math.PI / 2);
@@ -712,7 +715,18 @@ function main() {
   }
   function applyExplode(t) {
     explodeV = THREE.MathUtils.clamp(t, 0, 1);
-    for (const e of EXP) e.o.position.copy(e.o.userData.basePos || e.o.position).addScaledVector(e.d, explodeV);
+    for (const e of EXP) {
+      e.o.position.copy(e.o.userData.basePos || e.o.position).addScaledVector(e.d, explodeV);
+      const r = e.o.userData.rot;
+      if (r) {
+        if (!e.o.userData.baseRot) e.o.userData.baseRot = { x: e.o.rotation.x, y: e.o.rotation.y, z: e.o.rotation.z };
+        const b = e.o.userData.baseRot;
+        e.o.rotation.set(
+          b.x + (r[0] === 'x' ? r[1] * explodeV : 0),
+          b.y + (r[0] === 'y' ? r[1] * explodeV : 0),
+          b.z + (r[0] === 'z' ? r[1] * explodeV : 0));
+      }
+    }
   }
   for (const e of EXP) if (!e.o.userData.basePos) e.o.userData.basePos = e.o.position.clone();
 
@@ -1009,7 +1023,8 @@ function main() {
     },
     chapterIdx: () => activeChapter,
     particlesOn: () => particlesActive,
-    pinsCount: () => PINS.length
+    pinsCount: () => PINS.length,
+    wheelTilt() { const w = EXP.find(e => e.o.userData.rot && e.o.userData.rot[0] === 'x'); return w ? +w.o.rotation.x.toFixed(3) : 0; }
   };
 
   let frames = 0, lastStat = performance.now(), readySent = false;

@@ -7,6 +7,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 const FL5 = window.__fl5;
 const errPush = m => { FL5.errs.push(String(m).slice(0, 300)); if (FL5.errs.length > 50) FL5.errs.length = 50; };
@@ -188,6 +189,9 @@ function main() {
   const EXP = [];
   let glassGeo = null;
   const PINS = [];
+  const GLB_SHELL_MATS = [];
+  let shellMode = 'proc';
+  let shellRootG = null;
 
   function reg(mesh, parent, label, opt) {
     opt = opt || {};
@@ -694,7 +698,7 @@ function main() {
     scene.add(g);
     return g;
   }
-  makeWheel(1, AXLE_F); makeWheel(-1, AXLE_F); makeWheel(1, AXLE_R); makeWheel(-1, AXLE_R);
+  const WHEEL_GS = [makeWheel(1, AXLE_F), makeWheel(-1, AXLE_F), makeWheel(1, AXLE_R), makeWheel(-1, AXLE_R)];
 
   makePin(0, engineG, -0.02, 0.80, 1.00);
   makePin(1, turboG, 0.115, 0.58, 1.315);
@@ -752,6 +756,11 @@ function main() {
     const o = lerp(1, 0.05, xrayV);
     SHELL_MATS.forEach(m => { m.opacity = o; m.depthWrite = o > 0.5; });
     for (const m of SHELL_MESHES) m.castShadow = o > 0.5;
+    for (const m of GLB_SHELL_MATS) {
+      m.opacity = o;
+      m.depthWrite = o > 0.985;
+      m.needsUpdate = false;
+    }
     MAT.biw.opacity = Math.max(0, (xrayV - 0.3) / 0.7) * 0.92;
     MAT.biw.visible = MAT.biw.opacity > 0.02;
   }
@@ -923,6 +932,14 @@ function main() {
   ];
   let touring = false, tourIdx = 0, tourStart = 0;
   let userTouched = false, introDone = false, introT0 = 0;
+  let bootGate = false;
+  function markReady() {
+    if (readySent) return;
+    readySent = true;
+    FL5.ready = true;
+    FL5.phase = 'ready';
+    loaderEl.style.display = 'none';
+  }
   const introFrom = V(9.8, 4.9, 11.0), introTo = V(4.7, 2.85, 5.55);
   const tmpV = new THREE.Vector3();
   controls.autoRotate = true;
@@ -1069,6 +1086,150 @@ function main() {
     wheelTilt() { const w = EXP.find(e => e.o.userData.rot && e.o.userData.rot[0] === 'x'); return w ? +w.o.rotation.x.toFixed(3) : 0; }
   };
 
+  (function initShellSwap() {
+    const SHELL_URL = 'models/fl5.glb';
+    const t2 = document.querySelector('#loader .t2');
+    const finish = () => { bootGate = true; if (!readySent) markReady(); };
+    setTimeout(finish, 20000);
+    fetch(SHELL_URL, { method: 'HEAD' }).then(r => {
+      if (!r.ok) { finish(); return; }
+      if (t2) t2.textContent = '正在加载真车网格 0%';
+      const mgr = new THREE.LoadingManager();
+      mgr.onProgress = (u, l, t) => { if (t > 0 && t2) t2.textContent = '正在加载真车网格 ' + Math.round(l / t * 100) + '%'; };
+      new GLTFLoader(mgr).load(SHELL_URL,
+        g => { try { applyGLBShell(g); finish(); } catch (e) { errPush('glb apply: ' + e.message); finish(); } },
+        undefined,
+        () => finish());
+    }).catch(() => finish());
+  })();
+
+  function applyGLBShell(gltf) {
+    const root = gltf.scene;
+    root.updateMatrixWorld(true);
+    let box = new THREE.Box3().setFromObject(root);
+    let size = box.getSize(new THREE.Vector3());
+    if (size.x > size.z) {
+      root.rotation.y = Math.PI / 2;
+      root.updateMatrixWorld(true);
+      box.setFromObject(root);
+      size = box.getSize(new THREE.Vector3());
+    }
+    FL5.stats.glbRaw = [size.x.toFixed(2), size.y.toFixed(2), size.z.toFixed(2)];
+    root.scale.setScalar(4.59 / size.z);
+    root.updateMatrixWorld(true);
+
+    const shellKeys = /paint|coloured|carbon|base_material|grille|light|licenseplate|badge/i;
+    const rimKey = /rim/i, tireKey = /toyo/i, discKey = /brakedisc/i;
+    const wheelMeshes = [];
+    root.traverse(o => {
+      if (!o.isMesh) return;
+      o.castShadow = true;
+      o.receiveShadow = true;
+      const mats = Array.isArray(o.material) ? o.material : [o.material];
+      for (const m of mats) {
+        if (m.map) m.map.anisotropy = 4;
+        const nm = (m.name || '') + ' ';
+        if (shellKeys.test(nm)) {
+          m.transparent = true;
+          if (!GLB_SHELL_MATS.includes(m)) GLB_SHELL_MATS.push(m);
+        } else if (rimKey.test(nm) || tireKey.test(nm) || discKey.test(nm)) {
+          if (!wheelMeshes.includes(o)) wheelMeshes.push(o);
+        }
+      }
+    });
+
+    const wp = [];
+    for (const o of wheelMeshes) {
+      const bb = new THREE.Box3().setFromObject(o);
+      if (bb.isEmpty()) continue;
+      const c = bb.getCenter(new THREE.Vector3());
+      const sz = bb.getSize(new THREE.Vector3());
+      if (!isFinite(c.x) || sz.length() > 1.5) continue;
+      wp.push(c);
+    }
+    FL5.stats.glbWheelPts = wp.length;
+    let aligned = false;
+    try {
+      const keyOf = q => Math.round(q.x / 0.06) + '_' + Math.round(q.z / 0.06);
+      const uniq = new Map();
+      for (const q of wp) { const k = keyOf(q); if (!uniq.has(k)) uniq.set(k, q.clone()); }
+      const pts = [...uniq.values()];
+      if (pts.length >= 4 && isFinite(pts[0].x)) {
+        pts.sort((a, b) => b.z - a.z);
+        const frontZ = [], rearZ = [];
+        const midZ = (pts[0].z + pts[pts.length - 1].z) / 2;
+        for (const q of pts) (q.z > midZ ? frontZ : rearZ).push(q);
+        const avg = a => a.reduce((t, v) => t + v, 0) / a.length;
+        if (frontZ.length && rearZ.length) {
+          const zf = avg(frontZ.map(q => q.z)), zr = avg(rearZ.map(q => q.z));
+          const xs = pts.map(q => q.x);
+          const xl = Math.min(...xs), xr = Math.max(...xs);
+          const yh = avg(pts.map(q => q.y));
+          const wb = Math.abs(zf - zr);
+          if (wb > 0.8 && isFinite(wb) && xr - xl > 0.8) {
+            const s2 = 2.77 / wb;
+            root.scale.multiplyScalar(s2);
+            root.updateMatrixWorld(true);
+            const dy = 0.335 - yh * s2;
+            const dz = -0.035 - ((zf + zr) / 2) * s2;
+            const dx = -(xl + xr) / 2 * s2;
+            if ([dx, dy, dz].every(isFinite)) {
+              root.position.set(dx, dy, dz);
+              root.updateMatrixWorld(true);
+              aligned = true;
+              FL5.stats.glbAlign = { wb: +wb.toFixed(2), s2: +s2.toFixed(3), dx: +dx.toFixed(3), dy: +dy.toFixed(3), dz: +dz.toFixed(3) };
+            }
+          }
+        }
+      }
+    } catch (e) { errPush('glb align: ' + e.message); }
+    if (!aligned) {
+      root.updateMatrixWorld(true);
+      const b2 = new THREE.Box3().setFromObject(root);
+      const c2 = b2.getCenter(new THREE.Vector3());
+      root.position.set(-c2.x, -b2.min.y, -c2.z);
+      root.updateMatrixWorld(true);
+    }
+    box.setFromObject(root);
+    size = box.getSize(new THREE.Vector3());
+    FL5.stats.glbFinal = [size.x.toFixed(2), size.y.toFixed(2), size.z.toFixed(2)];
+
+    shellRootG = new THREE.Group();
+    scene.add(shellRootG);
+    shellRootG.add(root);
+    shellRootG.userData.basePos = shellRootG.position.clone();
+    EXP.push({ o: shellRootG, d: V(0, 1.25, 0) });
+
+    const corners = [[1, AXLE_F], [-1, AXLE_F], [1, AXLE_R], [-1, AXLE_R]];
+    for (const [sgn, az] of corners) {
+      const pv = new THREE.Group();
+      pv.position.set(sgn * TRACK, 0.335, az);
+      scene.add(pv);
+      for (const m of wheelMeshes) {
+        const p = new THREE.Vector3();
+        m.getWorldPosition(p);
+        if (p.distanceTo(pv.position) < 0.5) pv.attach(m);
+      }
+      pv.userData.basePos = pv.position.clone();
+      pv.userData.rot = ['x', sgn * 0.55];
+      EXP.push({ o: pv, d: V(sgn * 0.55, 0, 0) });
+    }
+
+    bodyG.visible = false;
+    for (const w of WHEEL_GS) w.visible = false;
+    interiorG.visible = false;
+
+    if (PINS[7] && PINS[7].o.parent !== root) {
+      const wp7 = new THREE.Vector3();
+      PINS[7].o.getWorldPosition(wp7);
+      root.attach(PINS[7].o);
+      PINS[7].o.position.copy(root.worldToLocal(wp7));
+    }
+
+    shellMode = 'glb';
+    FL5.shellMode = 'glb';
+  }
+
   let frames = 0, lastStat = performance.now(), readySent = false;
   function tick(now) {
     requestAnimationFrame(tick);
@@ -1097,7 +1258,7 @@ function main() {
           lastTarget.set(s.t[0], s.t[1], s.t[2]);
           camera.lookAt(lastTarget);
         }
-      } else if (!introDone) {
+      } else if (!introDone && bootGate) {
         if (!introT0) introT0 = now;
         const u = Math.min((now - introT0) / 3200, 1);
         const e = 1 - Math.pow(1 - u, 3);
@@ -1130,12 +1291,7 @@ function main() {
           frames = 0; lastStat = now;
         }
       }
-      if (!readySent) {
-        readySent = true;
-        FL5.ready = true;
-        FL5.phase = 'ready';
-        loaderEl.style.display = 'none';
-      }
+
     } catch (e) {
       errPush('tick: ' + ((e && e.message) || e));
     }

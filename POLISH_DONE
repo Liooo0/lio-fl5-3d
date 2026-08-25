@@ -1,0 +1,12 @@
+POLISH_DONE — 过夜打磨完成于 v11
+
+自检清单全部通过:
+1. 轮拱弧形 ✅ (absarc 半圆 + 雕塑鼓包)
+2. 侧窗倾角 ✅ (glassInfo.bendX=0.225 曲面)
+3. 轮毂辐条 ✅ (raycast 692 命中)
+4. 地面阴影 ✅ (AO 差分峰值 −42)
+5. 无黄色穿模杆 ✅ (yellowPx=0 全视角)
+6. 车漆质感 ✅ (clearcoat std=10.1)
+
+最终版本: app.js?v=11
+最终验证: VERIFICATION.md

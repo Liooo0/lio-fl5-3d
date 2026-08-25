@@ -192,6 +192,9 @@ function main() {
   const GLB_SHELL_MATS = [];
   const GLB_FADE_MATS = [];
   let shellMode = 'proc';
+  const PAINT_MATS = [];
+  const LIVERY_SHADERS = [];
+  let currentLivery = 'off';
   let shellRootG = null;
 
   function reg(mesh, parent, label, opt) {
@@ -1103,6 +1106,92 @@ function main() {
     wheelTilt() { const w = EXP.find(e => e.o.userData.rot && e.o.userData.rot[0] === 'x'); return w ? +w.o.rotation.x.toFixed(3) : 0; }
   };
 
+  function genN4() {
+    const c = document.createElement('canvas'); c.width = 2048; c.height = 512;
+    const g = c.getContext('2d');
+    g.fillStyle = '#8f1016'; g.fillRect(0, 0, 2048, 512);
+    g.fillStyle = '#0c0d10';
+    for (let i = 0; i < 7; i++) {
+      const x = 120 + i * 300;
+      g.beginPath(); g.moveTo(x, 512); g.lineTo(x + 150, 0); g.lineTo(x + 260, 0); g.lineTo(x + 110, 512); g.closePath(); g.fill();
+    }
+    g.fillStyle = '#e8e9ec';
+    for (let i = 0; i < 6; i++) { const x = 240 + i * 300; g.fillRect(x, 0, 26, 512); }
+    return c;
+  }
+  function genN3() {
+    const c = document.createElement('canvas'); c.width = 2048; c.height = 512;
+    const g = c.getContext('2d');
+    g.fillStyle = '#101216'; g.fillRect(0, 0, 2048, 512);
+    g.strokeStyle = '#c8102e';
+    for (let i = 0; i < 5; i++) {
+      g.lineWidth = 18 - i * 2.4;
+      g.beginPath();
+      for (let x = 0; x <= 2048; x += 16) {
+        const y = 256 + Math.sin(x / 180 + i * 1.1) * (120 - i * 14);
+        x ? g.lineTo(x, y) : g.moveTo(x, y);
+      }
+      g.stroke();
+    }
+    return c;
+  }
+  function genN1() {
+    const c = document.createElement('canvas'); c.width = 2048; c.height = 512;
+    const g = c.getContext('2d');
+    g.fillStyle = '#0b0c0f'; g.fillRect(0, 0, 2048, 512);
+    g.strokeStyle = '#e10600'; g.lineWidth = 7;
+    for (let i = 0; i < 12; i++) { const y = 40 + i * 36; g.beginPath(); g.moveTo(0, y); g.lineTo(2048, y - 60); g.stroke(); }
+    return c;
+  }
+  const LIVERIES = {
+    off: null,
+    n4: { gen: genN4, edge: [143, 16, 22] },
+    n3: { gen: genN3, edge: [16, 18, 22] },
+    n1: { gen: genN1, edge: [11, 12, 15] },
+    utaha: { img: 'livery/utaha.png' },
+    mai: { img: 'livery/mai.png' }
+  };
+  function edgeColorFrom(src, w, h) {
+    const t = document.createElement('canvas'); t.width = 8; t.height = 8;
+    const g = t.getContext('2d');
+    g.drawImage(src, 0, h - 16, Math.min(64, w), 16, 0, 0, 8, 8);
+    const d = g.getImageData(0, 0, 8, 8).data;
+    let r = 0, gg = 0, b = 0;
+    for (let i = 0; i < d.length; i += 4) { r += d[i]; gg += d[i + 1]; b += d[i + 2]; }
+    const n = d.length / 4;
+    return new THREE.Color(r / n / 255, gg / n / 255, b / n / 255);
+  }
+  function setLivery(name) {
+    currentLivery = name;
+    if (!PAINT_MATS.length) return;
+    const conf = LIVERIES[name];
+    const apply = tex => {
+      for (const sh of LIVERY_SHADERS) {
+        if (!sh.uniforms || !sh.uniforms.uLiveryOn) continue;
+        sh.uniforms.uLiveryTex.value = tex;
+        sh.uniforms.uLiveryOn.value = tex ? 1 : 0;
+      }
+      if (tex) {
+        const ec = conf.edge ? new THREE.Color(conf.edge[0] / 255, conf.edge[1] / 255, conf.edge[2] / 255)
+          : edgeColorFrom(conf._img, conf._img.width, conf._img.height);
+        for (const sh of LIVERY_SHADERS) if (sh.uniforms && sh.uniforms.uEdgeCol) sh.uniforms.uEdgeCol.value = ec;
+      }
+      FL5.stats.livery = name;
+    };
+    if (!conf) { apply(null); return; }
+    if (conf.gen) { const t = new THREE.CanvasTexture(conf.gen()); t.colorSpace = THREE.SRGBColorSpace; apply(t); return; }
+    new THREE.TextureLoader().load(conf.img, tx => {
+      tx.colorSpace = THREE.SRGBColorSpace;
+      tx.wrapS = tx.wrapT = THREE.ClampToEdgeWrapping;
+      conf._img = tx.image;
+      FL5.stats.liveryTex = [tx.image.width, tx.image.height];
+      apply(tx);
+    }, undefined, () => apply(null));
+  }
+
+  const liverySel = document.getElementById('liverySel');
+  liverySel.addEventListener('change', () => setLivery(liverySel.value));
+
   (function initShellSwap() {
     const SHELL_URL = 'models/fl5.glb';
     const t2 = document.querySelector('#loader .t2');
@@ -1193,6 +1282,7 @@ function main() {
         } else if (shellKeys.test(nm)) {
           if (!m.userData.env0) { m.userData.env0 = m.envMapIntensity !== undefined ? m.envMapIntensity : 1; }
           if (/(Paint_Material|Coloured_Material|Base_Material)$/i.test(m.name.trim())) {
+            if (!PAINT_MATS.includes(m)) PAINT_MATS.push(m);
             m.color.set(0xc22730);
             m.envMapIntensity = Math.min(m.userData.env0, 0.42);
             tinted++;
@@ -1213,6 +1303,23 @@ function main() {
         if (GLB_SHELL_MATS.includes(m) || GLB_FADE_MATS.includes(m)) { o.renderOrder = 8; break; }
       }
     });
+
+    for (const m of PAINT_MATS) {
+      m.onBeforeCompile = sh => {
+        sh.uniforms.uLiveryOn = { value: 0 };
+        sh.uniforms.uLiveryTex = { value: null };
+        sh.uniforms.uEdgeCol = { value: new THREE.Color(0x4a090d) };
+        sh.uniforms.uZRange = { value: new THREE.Vector2(-2.34, 2.36) };
+        sh.uniforms.uYRange = { value: new THREE.Vector2(0.28, 1.30) };
+        sh.vertexShader = sh.vertexShader
+          .replace('#include <common>', '#include <common>\nvarying vec3 vLivW;\nvarying vec3 vLivN;')
+          .replace('#include <begin_vertex>', '#include <begin_vertex>\nvLivW=(modelMatrix*vec4(transformed,1.0)).xyz;\nvLivN=normalize(mat3(modelMatrix)*objectNormal);');
+        sh.fragmentShader = sh.fragmentShader
+          .replace('#include <common>', '#include <common>\nvarying vec3 vLivW;\nvarying vec3 vLivN;\nuniform float uLiveryOn;\nuniform sampler2D uLiveryTex;\nuniform vec3 uEdgeCol;\nuniform vec2 uZRange;\nuniform vec2 uYRange;')
+          .replace('#include <map_fragment>', '#include <map_fragment>\nif(uLiveryOn>0.5){\nvec3 ln=normalize(vLivN);\nfloat side=step(0.55,abs(ln.x));\nvec2 luv=vec2((vLivW.z-uZRange.x)/(uZRange.y-uZRange.x),(vLivW.y-uYRange.x)/(uYRange.y-uYRange.x));\nvec4 lt=texture2D(uLiveryTex,clamp(luv,vec2(0.002),vec2(0.998)));\ndiffuseColor.rgb=mix(uEdgeCol*(0.35+diffuseColor.r),lt.rgb,side);\n}');
+        LIVERY_SHADERS.push(sh);
+      };
+    }
 
     const wp = [];
     for (const o of wheelMeshes) {

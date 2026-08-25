@@ -40,7 +40,7 @@ function main() {
   const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.05, 100);
   const composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
-  const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth * 0.5, window.innerHeight * 0.5), 0.38, 0.3, 0.87);
+  const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth * 0.5, window.innerHeight * 0.5), 0.38, 0.3, 0.9);
   composer.addPass(bloom);
   composer.addPass(new OutputPass());
   camera.position.set(4.7, 2.85, 5.55);
@@ -190,6 +190,7 @@ function main() {
   let glassGeo = null;
   const PINS = [];
   const GLB_SHELL_MATS = [];
+  const GLB_FADE_MATS = [];
   let shellMode = 'proc';
   let shellRootG = null;
 
@@ -753,13 +754,23 @@ function main() {
   let xrayV = 0, explodeV = 0, prevSavedXray = 0;
   function applyXray(t) {
     xrayV = THREE.MathUtils.clamp(t, 0, 1);
-    const o = lerp(1, 0.05, xrayV);
+    const k = Math.min(xrayV * 1.6, 1);
+    const o = lerp(1, 0.05, k);
     SHELL_MATS.forEach(m => { m.opacity = o; m.depthWrite = o > 0.5; });
     for (const m of SHELL_MESHES) m.castShadow = o > 0.5;
+    const faded = xrayV > 0.02;
     for (const m of GLB_SHELL_MATS) {
       m.opacity = o;
       m.depthWrite = o > 0.985;
-      m.needsUpdate = false;
+      if (!m.userData.env0) m.userData.env0 = m.envMapIntensity !== undefined ? m.envMapIntensity : 1;
+      m.envMapIntensity = faded ? Math.min(m.userData.env0, 0.15) : m.userData.env0;
+    }
+    for (const m of GLB_FADE_MATS) {
+      const io = xrayV <= 0.05 ? lerp(1, 0.55, xrayV / 0.05) : lerp(0.55, 0.02, (xrayV - 0.05) / 0.95);
+      m.opacity = io;
+      m.depthWrite = io > 0.985;
+      if (!m.userData.env0) m.userData.env0 = m.envMapIntensity !== undefined ? m.envMapIntensity : 1;
+      m.envMapIntensity = faded ? Math.min(m.userData.env0, 0.12) : m.userData.env0;
     }
     MAT.biw.opacity = Math.max(0, (xrayV - 0.3) / 0.7) * 0.92;
     MAT.biw.visible = MAT.biw.opacity > 0.02;
@@ -1137,7 +1148,10 @@ function main() {
       for (const m of mats) {
         if (m.map) m.map.anisotropy = 4;
         const nm = (m.name || '') + ' ';
-        if (shellKeys.test(nm)) {
+        if (/interior|seatbelt|window/i.test(nm)) {
+          m.transparent = true;
+          if (!GLB_FADE_MATS.includes(m)) GLB_FADE_MATS.push(m);
+        } else if (shellKeys.test(nm)) {
           if (/(Paint_Material|Coloured_Material|Base_Material)$/i.test(m.name.trim())) {
             m.color.set(0xc22730);
             tinted++;
@@ -1149,8 +1163,15 @@ function main() {
         }
       }
     });
+    root.traverse(o => {
+      if (!o.isMesh) return;
+      const mm = Array.isArray(o.material) ? o.material : [o.material];
+      for (const m of mm) {
+        if (GLB_SHELL_MATS.includes(m) || GLB_FADE_MATS.includes(m)) { o.renderOrder = 8; break; }
+      }
+    });
 
-    const wp = [];
+    const wp = wheelMeshes.map
     for (const o of wheelMeshes) {
       const bb = new THREE.Box3().setFromObject(o);
       if (bb.isEmpty()) continue;

@@ -169,3 +169,17 @@ node serve.js
 ## 回归确认(v14 全量验证)
 console error=0 · pageerror=0 · 黄杆像素≤1 · 玻璃曲率 bendX=0.220 · 三角形 38,226 · 可拾取零件 151
 截图:shots/shot-{exterior,engine,chassis,cabin,tour}-v14.png + shot-side-v14.png
+
+---
+
+# 电影级演示层(v15→v18)
+
+| 大项 | 内容 | 验收 |
+|---|---|---|
+| C1 暗棚+Bloom+材质 | 深藏青渐变穹顶、微反光深色地台、冷主光/暖辅光/蓝轮廓光;EffectComposer+UnrealBloom(半分辨率)+OutputPass;竞速红金属漆(0x8a0f14 clearcoat)、铜金涡轮歧管、钛银扇叶、阳极蓝螺栓 | 整帧均值亮度 **53.9<60** ✅ 泛光高光 18k px |
+| C2 热点+信息卡+章节 | CSS2DRenderer ①-⑧编号钉(点击跳章)、玻璃拟态信息卡(8章真实规格文案)、底部导航条(拆解演示/圆点/箭头/键盘)、easeInOutCubic 相机+X光+爆炸联动补间 | 可见热点 **8≥6** ✅ 点第②章→机舱机位+「K20C1 发动机」卡片 ✅ |
+| C3 爆炸重做 | 轴向匀称散开+部件旋转归位(车轮滚转0.55rad/发动机侧倾/座舱偏航),章节内 easeInOutCubic | 真实鼠标拖动采样 23→77→100 平滑 ✅ console 0 |
+| C4 排气粒子 | 尾喉三口喷发暖色火花(420 Points,AdditiveBlending),仅第⑦章显示 | 粒子章 spark 像素 2242 ✅ 切章自动隐藏 ✅ |
+
+全量回归:v18 console error=0 · pageerror=0 · 三角形 38,226 · 截图 6 张
+`shots/shot-cinema-{overview,engine,explode,exhaust,cockpit,chassis}-v18.png`

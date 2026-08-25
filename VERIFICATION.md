@@ -267,3 +267,23 @@ shot-{exterior,engine,chassis,cabin}-release.png 全部以 shellMode='glb' 重�
 
 ## 回归
 console error=0 · pageerror=0 · 对齐 stats 正常 · 三角形 ~1.03M(GLB)
+
+---
+
+# v6d 官方图 bloom 重修(v25)
+
+## 根因与修法
+真网格大面积平整车顶/机盖的 clearcoat 镜像把 RoomEnvironment 亮斑铺满整个面板,v19 参数(strength .38/threshold .9)再次被顶穿。v6b 只压了 X光态 envMap,常亮态基线没动——本轮补上:
+- bloom:strength .38→**.26**,radius .3→**.22**,threshold .9→**.93**
+- GLB 材质静态 envMapIntensity 上限:Paint/Coloured/Base →**≤0.42**(tint 同步),其余外壳件 ≤0.55,Window/玻璃 ≤0.32 且 roughness≥0.32
+- userData.env0 记录封顶后基线,X光动态压制沿用同一数值不冲突
+
+## v25 验收
+| 项 | 结果 |
+|---|---|
+| 车顶/机盖成片炸白 | roof zone **0%**,hood **0%**,整帧 lum>246 占比 ≤0.09% ✅ |
+| 红漆饱和度 | release 外观亮红区均值 (189,129,124),r-g=**59**,r/g=1.46(v24 为45)✅ |
+| 暗部不死黑 | 暗部细节像素 98,630 ✅ 整帧均值 36.5(暗棚范围) |
+| 回归 | console error=0;热点/UI 正常 |
+
+截图:`shots/shot-{exterior,top}-v25.png` + 四张 release 官方图(已覆盖,镜像 shots/release/)

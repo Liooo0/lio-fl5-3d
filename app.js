@@ -2,6 +2,10 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const FL5 = window.__fl5;
 const errPush = m => { FL5.errs.push(String(m).slice(0, 300)); if (FL5.errs.length > 50) FL5.errs.length = 50; };
@@ -20,16 +24,22 @@ function main() {
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.08;
+  renderer.toneMappingExposure = 0.84;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   document.body.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0xdfe7ee);
-  scene.fog = new THREE.Fog(0xdfe7ee, 18, 62);
+  scene.background = new THREE.Color(0x070b12);
+  scene.fog = new THREE.Fog(0x070b12, 20, 60);
+
 
   const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.05, 100);
+  const composer = new EffectComposer(renderer);
+  composer.addPass(new RenderPass(scene, camera));
+  const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth * 0.5, window.innerHeight * 0.5), 0.55, 0.45, 0.82);
+  composer.addPass(bloom);
+  composer.addPass(new OutputPass());
   camera.position.set(4.7, 2.85, 5.55);
 
   const controls = new OrbitControls(camera, renderer.domElement);
@@ -45,9 +55,9 @@ function main() {
   const pmrem = new THREE.PMREMGenerator(renderer);
   scene.environment = pmrem.fromScene(new RoomEnvironment(renderer), 0.04).texture;
 
-  const hemi = new THREE.HemisphereLight(0xcfe0ef, 0x8d9095, 0.48);
+  const hemi = new THREE.HemisphereLight(0x2a3b55, 0x0a0c10, 0.32);
   scene.add(hemi);
-  const key = new THREE.DirectionalLight(0xffffff, 2.8);
+  const key = new THREE.DirectionalLight(0xcfe0ff, 1.9);
   key.position.set(4.5, 7.5, 3.5);
   key.castShadow = true;
   key.shadow.mapSize.set(2048, 2048);
@@ -56,20 +66,23 @@ function main() {
   key.shadow.camera.near = 1; key.shadow.camera.far = 22;
   key.shadow.bias = -0.0004; key.shadow.normalBias = 0.02;
   scene.add(key);
-  const fill = new THREE.DirectionalLight(0xdde8f2, 0.65);
+  const fill = new THREE.DirectionalLight(0xffd9a8, 0.4);
   fill.position.set(-5, 3.5, -5);
   scene.add(fill);
+  const rim = new THREE.DirectionalLight(0x6f9fff, 1.15);
+  rim.position.set(-2.5, 4.5, -6.5);
+  scene.add(rim);
 
   const groundTex = (() => {
     const c = document.createElement('canvas'); c.width = c.height = 512;
     const g2 = c.getContext('2d');
     const rg = g2.createRadialGradient(256, 256, 50, 256, 256, 256);
-    rg.addColorStop(0, '#3a3e44');     rg.addColorStop(0.55, '#454a51'); rg.addColorStop(1, '#a9b4bd');
+    rg.addColorStop(0, '#141924'); rg.addColorStop(0.55, '#10141d'); rg.addColorStop(1, '#05070c');
     g2.fillStyle = rg; g2.fillRect(0, 0, 512, 512);
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
   })();
   const ground = new THREE.Mesh(new THREE.CircleGeometry(17, 48).rotateX(-Math.PI / 2),
-    new THREE.MeshStandardMaterial({ map: groundTex, roughness: 0.95, metalness: 0, envMapIntensity: 0.22 }));
+    new THREE.MeshStandardMaterial({ map: groundTex, roughness: 0.34, metalness: 0.5, envMapIntensity: 0.42 }));
   ground.receiveShadow = true;
   ground.userData.noPick = true;
   scene.add(ground);
@@ -90,7 +103,7 @@ function main() {
     const sc = document.createElement('canvas'); sc.width = 4; sc.height = 256;
     const sg2 = sc.getContext('2d');
     const grad = sg2.createLinearGradient(0, 0, 0, 256);
-    grad.addColorStop(0, '#b9cede'); grad.addColorStop(0.55, '#dfe7ee'); grad.addColorStop(1, '#eef1f3');
+    grad.addColorStop(0, '#04060b'); grad.addColorStop(0.55, '#0a101c'); grad.addColorStop(1, '#131c2c');
     sg2.fillStyle = grad; sg2.fillRect(0, 0, 4, 256);
     const st = new THREE.CanvasTexture(sc); st.colorSpace = THREE.SRGBColorSpace;
     const dome = new THREE.Mesh(new THREE.SphereGeometry(70, 24, 16),
@@ -125,7 +138,7 @@ function main() {
   }
 
   const MAT = {
-    paint: new THREE.MeshPhysicalMaterial({ color: 0xf1f3f5, roughness: 0.36, metalness: 0.12, clearcoat: 1.0, clearcoatRoughness: 0.08, transparent: true }),
+    paint: new THREE.MeshPhysicalMaterial({ color: 0x8a0f14, roughness: 0.34, metalness: 0.45, clearcoat: 1.0, clearcoatRoughness: 0.07, transparent: true }),
     glass: new THREE.MeshStandardMaterial({ color: 0x10222e, roughness: 0.06, metalness: 0.5, transparent: true, opacity: 0.55, side: THREE.DoubleSide }),
     trim: new THREE.MeshStandardMaterial({ color: 0x131417, roughness: 0.7, transparent: true }),
     honey: new THREE.MeshStandardMaterial({ color: 0xffffff, map: honeyTex(3, 1), roughness: 0.6, metalness: 0.3, transparent: true, opacity: 0.92 }),
@@ -142,9 +155,11 @@ function main() {
     aluDark: new THREE.MeshStandardMaterial({ color: 0x878d94, roughness: 0.5, metalness: 0.8 }),
     steel: new THREE.MeshStandardMaterial({ color: 0xc9ced3, roughness: 0.28, metalness: 0.95 }),
     iron: new THREE.MeshStandardMaterial({ color: 0x585c62, roughness: 0.62, metalness: 0.8 }),
+    copper: new THREE.MeshStandardMaterial({ color: 0xb87333, roughness: 0.34, metalness: 0.92 }),
     vcover: new THREE.MeshStandardMaterial({ color: 0xc0121f, roughness: 0.42, metalness: 0.35 }),
     hose: new THREE.MeshStandardMaterial({ color: 0x1a1b1e, roughness: 0.9 }),
     blueSil: new THREE.MeshStandardMaterial({ color: 0x1f4fd0, roughness: 0.5 }),
+    blueAnod: new THREE.MeshStandardMaterial({ color: 0x16294e, roughness: 0.3, metalness: 0.85 }),
     blueShield: new THREE.MeshStandardMaterial({ color: 0x1f66d0, roughness: 0.34, metalness: 0.78, side: THREE.DoubleSide }),
     chrome: new THREE.MeshStandardMaterial({ color: 0xe2e5e8, roughness: 0.1, metalness: 1.0 }),
     caliper: new THREE.MeshStandardMaterial({ color: 0xd2141a, roughness: 0.32 }),
@@ -499,9 +514,9 @@ function main() {
   (function buildTurbo() {
     for (let i = 0; i < 3; i++) {
       const xi = -0.09 + i * 0.10;
-      pipe([V(xi, 0.42, 1.16), V(xi * 0.6 + 0.03, 0.44, 1.24), V(0.05, 0.47, 1.295)], 0.021, MAT.iron, turboG, i === 0 ? '排气歧管(集成式)' : null, { cast: false });
+      pipe([V(xi, 0.42, 1.16), V(xi * 0.6 + 0.03, 0.44, 1.24), V(0.05, 0.47, 1.295)], 0.021, MAT.copper, turboG, i === 0 ? '排气歧管(集成式)' : null, { cast: false });
     }
-    torus(0.075, 0.042, MAT.iron, turboG, 0.05, 0.44, 1.315, '涡轮增压器 · 排气侧蜗壳', { axis: 'X', rs: 12, ts: 26 });
+    torus(0.075, 0.042, MAT.copper, turboG, 0.05, 0.44, 1.315, '涡轮增压器 · 排气侧蜗壳', { axis: 'X', rs: 12, ts: 26 });
     cyl(0.042, 0.042, 0.07, 14, MAT.iron, turboG, 0.05, 0.365, 1.315, null, {});
     cyl(0.052, 0.052, 0.085, 16, MAT.aluDark, turboG, 0.115, 0.44, 1.315, '涡轮中间体(轴承壳)', { axis: 'X' });
     torus(0.06, 0.036, MAT.alu, turboG, 0.185, 0.44, 1.315, '压气机壳(进气侧)', { axis: 'X', rs: 12, ts: 26 });
@@ -528,7 +543,7 @@ function main() {
     torus(0.165, 0.011, MAT.plastic, coolingG, -0.12, 0.50, 1.615, '电子散热风扇', { ts: 28 });
     for (let i = 0; i < 7; i++) {
       const a = i / 7 * Math.PI * 2;
-      const bl = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.135, 0.007), MAT.plastic);
+      const bl = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.135, 0.007), MAT.spoke);
       bl.position.set(-0.12 + 0.085 * Math.cos(a), 0.50 + 0.085 * Math.sin(a), 1.615);
       bl.rotation.z = a - Math.PI / 2;
       bl.rotation.y = 0.5;
@@ -661,7 +676,7 @@ function main() {
       const ang = i / 5 * Math.PI * 2 + 0.31;
       const lugG = new THREE.CylinderGeometry(0.011, 0.011, 0.02, 8, 1);
       lugG.rotateZ(Math.PI / 2);
-      const lug = new THREE.Mesh(lugG, MAT.chrome);
+      const lug = new THREE.Mesh(lugG, MAT.blueAnod);
       lug.position.set(faceX + s * 0.012, 0.032 * Math.cos(ang), 0.032 * Math.sin(ang));
       reg(lug, g, null, { cast: false });
     }
@@ -816,6 +831,8 @@ function main() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
+    composer.setSize(window.innerWidth, window.innerHeight);
+    bloom.setSize(window.innerWidth * 0.5, window.innerHeight * 0.5);
   });
 
   const lastTarget = new THREE.Vector3(0, 0.62, 0);
@@ -902,7 +919,7 @@ function main() {
         tipEl.style.top = Math.min(Math.max(sy - 40, 8), window.innerHeight - 50) + 'px';
       }
       if (FL5.errs.length < 40) {
-        renderer.render(scene, camera);
+        composer.render();
         frames++;
         if (now - lastStat >= 1000) {
           FL5.stats.fps = frames;

@@ -1,8 +1,6 @@
 BRIEF*.md
-ROUND*.md
-overnight.sh
-overnight.log
-POLISH_DONE
-REPORT.md
+overnight*.sh
 overnight*.log
 v4.sh
+WHEELS_DONE
+ROUND*.md

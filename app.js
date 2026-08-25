@@ -571,7 +571,12 @@ function main() {
     cyl(0.03, 0.03, 0.025, 12, MAT.plastic, coolingG, -0.55, 0.69, 1.44, null, {});
   })();
 
+  let TAIL_ORIGIN = V(0, 0.255, -2.36);
+  let tailTrio = null;
+
   (function buildExhaust() {
+    tailTrio = new THREE.Group();
+    exhaustG.add(tailTrio);
     pipe([V(0.05, 0.35, 1.315), V(0.07, 0.27, 1.16), V(0.03, 0.212, 0.98), V(0, 0.205, 0.84)], 0.042, MAT.iron, exhaustG, '涡轮下落管 Downpipe');
     cyl(0.044, 0.044, 0.40, 14, MAT.iron, exhaustG, 0, 0.205, 0.60, null, { axis: 'Z' });
     cyl(0.063, 0.063, 0.42, 18, MAT.blueShield, exhaustG, 0, 0.205, 0.60, '蓝色隔热罩排气头段', { axis: 'Z', open: true, thetaStart: 0.4, thetaLen: Math.PI * 2 - 0.8 });
@@ -581,10 +586,10 @@ function main() {
     cyl(0.043, 0.043, 0.62, 12, MAT.steel, exhaustG, 0, 0.208, -1.03, null, { axis: 'Z' });
     box(0.36, 0.17, 0.44, MAT.steel, exhaustG, 0, 0.235, -1.55, '后消音器');
     for (const tx of [-0.11, 0, 0.11]) {
-      tubeBetween(V(tx, 0.24, -1.77), V(tx, 0.255, -2.22), 0.036, undefined, MAT.steel, exhaustG, null, { cast: false });
-      cyl(0.042, 0.042, 0.16, 16, MAT.chrome, exhaustG, tx, 0.255, -2.30, tx === 0 ? '中置三出排气尾喉(中央)' : '三出尾喉', { axis: 'Z', open: true });
-      cyl(0.031, 0.031, 0.145, 12, MAT.gloss, exhaustG, tx, 0.255, -2.292, null, { axis: 'Z' });
-      torus(0.041, 0.006, MAT.chrome, exhaustG, tx, 0.255, -2.378, null, { cast: false });
+      tubeBetween(V(tx, 0.24, -1.77), V(tx, 0.255, -2.22), 0.036, undefined, MAT.steel, tailTrio, null, { cast: false });
+      cyl(0.042, 0.042, 0.16, 16, MAT.chrome, tailTrio, tx, 0.255, -2.30, tx === 0 ? '中置三出排气尾喉(中央)' : '三出尾喉', { axis: 'Z', open: true });
+      cyl(0.031, 0.031, 0.145, 12, MAT.gloss, tailTrio, tx, 0.255, -2.292, null, { axis: 'Z' });
+      torus(0.041, 0.006, MAT.chrome, tailTrio, tx, 0.255, -2.378, null, { cast: false });
     }
   })();
 
@@ -716,11 +721,12 @@ function main() {
   const pVel = new Float32Array(PN * 3);
   const pLife = new Float32Array(PN);
   function spawnP(i) {
-    const tipX = [-0.11, 0, 0.11][i % 3];
+    const tipX = TAIL_ORIGIN.x + [-0.105, 0.105, 0][i % 3];
+    const tipY = TAIL_ORIGIN.y + (i % 3 === 2 ? 0.075 : 0);
     pPos[i * 3] = tipX + (Math.random() - 0.5) * 0.05;
-    pPos[i * 3 + 1] = 0.255 + (Math.random() - 0.5) * 0.05;
-    pPos[i * 3 + 2] = -2.38 - Math.random() * 0.05;
-    pVel[i * 3] = (Math.random() - 0.5) * 0.25 + tipX * 1.2;
+    pPos[i * 3 + 1] = tipY + (Math.random() - 0.5) * 0.04;
+    pPos[i * 3 + 2] = TAIL_ORIGIN.z - Math.random() * 0.05;
+    pVel[i * 3] = (Math.random() - 0.5) * 0.25 + tipX * 0.9;
     pVel[i * 3 + 1] = 0.15 + Math.random() * 0.35;
     pVel[i * 3 + 2] = -(0.9 + Math.random() * 0.9);
     pLife[i] = 0.6 + Math.random() * 0.5;
@@ -1288,6 +1294,81 @@ function main() {
     bodyG.visible = false;
     for (const w of WHEEL_GS) w.visible = false;
     interiorG.visible = false;
+
+    const engineMeshes = [];
+    let tailZ = null;
+    const tmpB2 = new THREE.Box3();
+    root.traverse(o => {
+      if (!o.isMesh) return;
+      tmpB2.setFromObject(o);
+      if (tmpB2.isEmpty()) return;
+      const mm2 = Array.isArray(o.material) ? o.material : [o.material];
+      const isEngine = mm2.some(m => /enginea/i.test(m.name || ''));
+      const c2v = tmpB2.getCenter(new THREE.Vector3());
+      if (isEngine && c2v.z > 0.3) engineMeshes.push(o);
+      if (Math.abs(c2v.x) < 0.4 && c2v.y < 0.55 && c2v.y > 0.05) {
+        if (tailZ === null || tmpB2.min.z < tailZ) tailZ = tmpB2.min.z;
+      }
+    });
+    FL5.stats.glbTailZ = tailZ === null ? null : +tailZ.toFixed(3);
+
+    if (engineMeshes.length) {
+      engineG.visible = false;
+      const eb = new THREE.Box3();
+      for (const o of engineMeshes) eb.union(tmpB2.setFromObject(o));
+      const ec = eb.getCenter(new THREE.Vector3());
+      FL5.stats.glbEnginePos = [ec.x, ec.y, ec.z].map(v => +v.toFixed(2));
+      CHAPTERS[1].tgt = [ec.x, ec.y, ec.z];
+      if (PINS[0]) {
+        root.add(PINS[0].o);
+        PINS[0].o.position.copy(root.worldToLocal(ec.clone().add(V(0, 0.16, 0))));
+      }
+    }
+
+    if (tailTrio && tailZ !== null && isFinite(tailZ)) {
+      tailTrio.visible = false;
+      TAIL_ORIGIN.set(0, 0.245, tailZ + 0.10);
+      const pyr = [[-0.105, 0], [0.105, 0], [0, 0.078]];
+      for (const [tx, ty] of pyr) {
+        tubeBetween(V(tx * 0.5, 0.235, tailZ + 0.34), V(tx, 0.245 + ty, tailZ - 0.02), 0.036, undefined, MAT.steel, exhaustG, null, { cast: false });
+        cyl(0.047, 0.047, 0.11, 16, MAT.gloss, exhaustG, tx, 0.245 + ty, tailZ - 0.03, '三出尾喉(品字形)', { axis: 'Z', open: true });
+        cyl(0.034, 0.034, 0.10, 12, MAT.plastic, exhaustG, tx, 0.245 + ty, tailZ - 0.035, null, { axis: 'Z' });
+        torus(0.046, 0.006, MAT.chrome, exhaustG, tx, 0.245 + ty, tailZ - 0.085, null, { cast: false });
+      }
+      FL5.stats.tipsPyramid = true;
+    }
+
+    {
+      const handleMat = new THREE.MeshStandardMaterial({ color: 0x0c0d10, roughness: 0.28, metalness: 0.9 });
+      GLB_SHELL_MATS.push(handleMat);
+      let bestX = 0;
+      const bandLo = 0.62, bandHi = 0.80, zLo = -0.85, zHi = -0.30;
+      const scanList = [];
+      root.traverse(o => { if (o.isMesh && o.geometry && o.geometry.attributes.position) scanList.push(o); });
+      for (const m of scanList) {
+        const mmH = Array.isArray(m.material) ? m.material : [m.material];
+        if (!mmH.some(x => GLB_SHELL_MATS.includes(x))) continue;
+        const pa = m.geometry.attributes.position;
+        const step = Math.max(1, Math.floor(pa.count / 4000));
+        for (let vi = 0; vi < pa.count; vi += step) {
+          const vx = pa.getX(vi), vy = pa.getY(vi), vz = pa.getZ(vi);
+          if (vy > bandLo && vy < bandHi && vz > zLo && vz < zHi) {
+            const ax = Math.abs(vx);
+            if (ax > bestX && isFinite(ax) && ax < 1.15) bestX = ax;
+          }
+          if (bestX > 1.02) break;
+        }
+        if (bestX > 1.02) break;
+      }
+      const hx = Math.max(bestX * 1.002, 0.80);
+      FL5.stats.handleX = +hx.toFixed(3);
+      for (const sgn of [1, -1]) {
+        const h = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.032, 0.15), handleMat);
+        h.position.set(sgn * hx, 0.715, -0.58);
+        h.renderOrder = 8;
+        shellRootG.add(h);
+      }
+    }
 
     if (PINS[7] && PINS[7].o.parent !== root) {
       const wp7 = new THREE.Vector3();

@@ -281,8 +281,8 @@ function main() {
 
   (function buildBody() {
     const sh = new THREE.Shape();
-    sh.moveTo(2.235, 0.34);
-    sh.lineTo(2.245, 0.52); sh.lineTo(2.20, 0.68); sh.lineTo(1.95, 0.80);
+    sh.moveTo(2.14, 0.36);
+    sh.lineTo(2.155, 0.56); sh.lineTo(2.12, 0.75); sh.lineTo(1.80, 0.865);
     sh.lineTo(0.62, 0.925); sh.lineTo(0.40, 1.00); sh.lineTo(0.05, 1.30);
     sh.lineTo(-0.50, 1.335); sh.lineTo(-1.05, 1.28); sh.lineTo(-1.62, 1.02);
     sh.lineTo(-2.05, 0.90); sh.lineTo(-2.21, 0.885); sh.lineTo(-2.235, 0.62);
@@ -291,7 +291,7 @@ function main() {
     sh.absarc(-1.42, 0.30, 0.46, Math.PI, 0, true);
     sh.lineTo(0.89, 0.30);
     sh.absarc(1.35, 0.30, 0.46, Math.PI, 0, true);
-    sh.lineTo(2.16, 0.30);
+    sh.lineTo(2.05, 0.30);
     sh.closePath();
     let bg = new THREE.ExtrudeGeometry(sh, { depth: 1.54, bevelEnabled: true, bevelThickness: 0.09, bevelSize: 0.06, bevelSegments: 3, curveSegments: 24 });
     bg.translate(0, 0, -0.77);
@@ -340,16 +340,16 @@ function main() {
     rg.position.set(0, 1.15, -1.335);
     reg(rg, bodyG, '后风挡玻璃(快背溜背)', { shell: true, cast: false });
 
-    box(1.05, 0.20, 0.05, MAT.honey, bodyG, 0, 0.62, 2.27, '蜂窝状前进气格栅', { shell: true });
-    box(0.055, 0.045, 0.014, MAT.badge, bodyG, 0, 0.615, 2.301, '红色 Type R 徽标', { shell: true });
-    box(1.15, 0.17, 0.05, MAT.honey, bodyG, 0, 0.36, 2.26, '前保险杠下部进气口', { shell: true });
-    box(0.20, 0.13, 0.05, MAT.honey, bodyG, 0.64, 0.40, 2.22, '前侧进气口', { shell: true });
-    box(0.20, 0.13, 0.05, MAT.honey, bodyG, -0.64, 0.40, 2.22, null, { shell: true });
-    box(0.38, 0.07, 0.10, MAT.trim, bodyG, 0.53, 0.735, 2.19, '全LED前大灯(熏黑灯罩)', { shell: true, ry: -0.15 });
-    box(0.30, 0.018, 0.02, MAT.lamp, bodyG, 0.537, 0.742, 2.243, 'LED日行灯带', { shell: true, ry: -0.15, cast: false });
-    box(0.38, 0.07, 0.10, MAT.trim, bodyG, -0.53, 0.735, 2.19, null, { shell: true, ry: 0.15 });
-    box(0.30, 0.018, 0.02, MAT.lamp, bodyG, -0.537, 0.742, 2.243, null, { shell: true, ry: 0.15, cast: false });
-    box(1.46, 0.026, 0.26, MAT.trim, bodyG, 0, 0.155, 2.26, '前唇扰流板', { shell: true });
+    box(1.16, 0.24, 0.05, MAT.honey, bodyG, 0, 0.47, 2.185, '蜂窝状前进气格栅', { shell: true, rx: -0.08 });
+    box(0.075, 0.062, 0.018, MAT.badge, bodyG, 0, 0.505, 2.222, '红色 Type R 徽标', { shell: true });
+    box(1.12, 0.15, 0.05, MAT.honey, bodyG, 0, 0.30, 2.11, '前保险杠下部进气口', { shell: true });
+    box(0.20, 0.13, 0.05, MAT.honey, bodyG, 0.60, 0.38, 2.06, '前侧进气口', { shell: true });
+    box(0.20, 0.13, 0.05, MAT.honey, bodyG, -0.60, 0.38, 2.06, null, { shell: true });
+    box(0.30, 0.05, 0.06, MAT.trim, bodyG, 0.47, 0.645, 2.20, '全LED前大灯(熏黑灯罩)', { shell: true, ry: -0.34 });
+    box(0.27, 0.018, 0.02, MAT.lamp, bodyG, 0.472, 0.652, 2.237, 'LED日行灯带', { shell: true, ry: -0.34, cast: false });
+    box(0.30, 0.05, 0.06, MAT.trim, bodyG, -0.47, 0.645, 2.20, null, { shell: true, ry: 0.34 });
+    box(0.27, 0.018, 0.02, MAT.lamp, bodyG, -0.472, 0.652, 2.237, null, { shell: true, ry: 0.34, cast: false });
+    box(1.42, 0.026, 0.24, MAT.trim, bodyG, 0, 0.155, 2.12, '前唇扰流板', { shell: true });
 
     box(0.30, 0.05, 0.40, MAT.paint, bodyG, 0, 0.975, 0.78, '引擎盖进气口(Scoop)', { shell: true, rx: 0.10 });
     box(0.22, 0.016, 0.30, MAT.trim, bodyG, 0, 1.002, 0.77, null, { shell: true, rx: 0.10 });

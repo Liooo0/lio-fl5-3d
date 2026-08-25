@@ -205,3 +205,29 @@ console error=0 · pageerror=0 · 黄杆像素≤1 · 玻璃曲率 bendX=0.220 �
 注:旧「黄色杆件」探测器在 v19 报 exterior 2102px —— 为红色车身上暖光边缘高光的假阳性(BiW 已是深灰,结构上不存在黄杆);底盘视角仅 66px 噪声级。
 
 截图:`shots/shot-{overview,engine}-v19.png`
+
+---
+
+# v6 换壳手术(v20→v21):GLTFLoader 真 FL5 网格
+
+## 手术内容(commit 7708342 + 本轮 tint/对齐加固)
+- `models/fl5.glb`(25.6MB,gitignored)经 GLTFLoader 加载,LoadingManager 进度写入加载层
+- 原始 bbox **2.28×1.44×4.99** → 长轴已沿 Z,缩放至 4.59 后按轮网包围盒中心聚类二次对齐:轴距实测 **2.73**(目标2.77,s2=1.013),平移仅 (0,0.061,-0.048)
+- 材质名分类(前缀 Honda_CivicTypeRRewardRecycled_2023*):Paint/Coloured/Base+Grille/Light/Badge/LicensePlate/Carbon→外壳组(随X光渐隐);Rim5A/TOYO/BrakeDisc→四角 pivot attach 进爆炸系统(±X 散开+滚转归位);Interior*/SeatBelt/EngineA/Window→常显
+- 程序化 bodyG/WHEEL_GS/interiorG 隐藏;机械组+红色卡钳全保留
+- 漆色:原生香槟金 → Paint/Coloured/Base 三材质 set(0xc22730) 乘红,亮区 r-g 11→**45**,中间调樱桃色
+- 回退:HEAD 探测失败/404/加载异常自动回退程序化版(route 注入 404 实测 ready 正常、程序化车接管;唯一 console 条目为浏览器对 404 资源的自动记录)
+
+## v21 全量验证
+| 项 | 结果 |
+|---|---|
+| ready(GLB 加载) | ✅(~15s@25MB,验证脚本超时已放宽至60s) |
+| shellMode | ✅ 'glb',bbox 终值 **2.12×1.34×4.65** |
+| X光 0.2 外壳半透明 | ✅ 截图 shot-xray-v21.png |
+| 爆炸联动 | ✅ 外壳+Y 上浮、四轮 ±X+滚转(shot-explode-v20.png) |
+| 章节 8 章巡演 | ✅ idx=7 走完无报错 |
+| console/pageerror | ✅ 0 / 0 |
+| 三角形 | **1,027,344**(任务书预估<250k 不符——25MB 大头是几何而非贴图;真机 GPU 无压力,headless 软渲染 fps 低属预期) |
+| 可点选零件 | 151 |
+
+截图:`shots/shot-{exterior,xray,explode}-v{20,21}.png`

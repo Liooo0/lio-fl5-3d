@@ -3,3 +3,6 @@ ROUND*.md
 overnight.sh
 overnight.log
 POLISH_DONE
+REPORT.md
+overnight*.log
+v4.sh

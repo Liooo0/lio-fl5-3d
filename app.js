@@ -284,8 +284,8 @@ function main() {
     sh.moveTo(2.14, 0.36);
     sh.lineTo(2.155, 0.56); sh.lineTo(2.12, 0.75); sh.lineTo(1.80, 0.865);
     sh.lineTo(0.62, 0.925); sh.lineTo(0.40, 1.00); sh.lineTo(0.05, 1.30);
-    sh.lineTo(-0.50, 1.335); sh.lineTo(-1.05, 1.28); sh.lineTo(-1.62, 1.02);
-    sh.lineTo(-2.05, 0.90); sh.lineTo(-2.21, 0.885); sh.lineTo(-2.235, 0.62);
+    sh.lineTo(-0.50, 1.335); sh.lineTo(-0.95, 1.27); sh.lineTo(-1.55, 0.985);
+    sh.lineTo(-1.95, 0.885); sh.lineTo(-2.19, 0.875); sh.lineTo(-2.215, 0.62);
     sh.lineTo(-2.225, 0.40);
     sh.lineTo(-1.88, 0.30);
     sh.absarc(-1.42, 0.30, 0.46, Math.PI, 0, true);
@@ -307,8 +307,8 @@ function main() {
 
     const sg = (() => {
       const s = new THREE.Shape();
-      s.moveTo(0.32, 0.97); s.lineTo(0.03, 1.255); s.lineTo(-0.60, 1.28); s.lineTo(-1.10, 1.16);
-      s.lineTo(-1.34, 0.985); s.lineTo(-1.02, 0.845); s.lineTo(-0.20, 0.845); s.closePath();
+      s.moveTo(0.32, 0.97); s.lineTo(0.03, 1.255); s.lineTo(-0.58, 1.272); s.lineTo(-1.04, 1.125);
+      s.lineTo(-1.30, 0.965); s.lineTo(-1.02, 0.845); s.lineTo(-0.20, 0.845); s.closePath();
       const gg = new THREE.ShapeGeometry(s, 14);
       gg.rotateY(-Math.PI / 2);
       const gp = gg.attributes.position;
@@ -334,10 +334,10 @@ function main() {
     ws.position.set(0, 1.15, 0.225);
     reg(ws, bodyG, '前风挡玻璃', { shell: true, cast: false });
 
-    const rgG = new THREE.PlaneGeometry(1.10, 0.64);
+    const rgG = new THREE.PlaneGeometry(1.10, 0.67);
     rgG.rotateX(-2.0);
     const rg = new THREE.Mesh(rgG, MAT.glass);
-    rg.position.set(0, 1.15, -1.335);
+    rg.position.set(0, 1.128, -1.25);
     reg(rg, bodyG, '后风挡玻璃(快背溜背)', { shell: true, cast: false });
 
     box(1.16, 0.24, 0.05, MAT.honey, bodyG, 0, 0.47, 2.185, '蜂窝状前进气格栅', { shell: true, rx: -0.08 });

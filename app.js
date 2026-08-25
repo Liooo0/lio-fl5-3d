@@ -1446,42 +1446,54 @@ function main() {
     }
 
     {
-      const handleMat = new THREE.MeshStandardMaterial({ color: 0x0c0d10, roughness: 0.28, metalness: 0.9 });
+      const handleMat = new THREE.MeshStandardMaterial({ color: 0x2a2d31, roughness: 0.3, metalness: 0.9, envMapIntensity: 0.8 });
       GLB_SHELL_MATS.push(handleMat);
-      let bestX = 0;
-      const bandLo = 0.62, bandHi = 0.80, zLo = -0.85, zHi = -0.30;
-      const scanList = [];
-      root.traverse(o => { if (o.isMesh && o.geometry && o.geometry.attributes.position) scanList.push(o); });
-      for (const m of scanList) {
-        const mmH = Array.isArray(m.material) ? m.material : [m.material];
-        if (!mmH.some(x => GLB_SHELL_MATS.includes(x))) continue;
-        const pa = m.geometry.attributes.position;
-        const step = Math.max(1, Math.floor(pa.count / 4000));
-        for (let vi = 0; vi < pa.count; vi += step) {
-          const vx = pa.getX(vi), vy = pa.getY(vi), vz = pa.getZ(vi);
-          if (vy > bandLo && vy < bandHi && vz > zLo && vz < zHi) {
-            const ax = Math.abs(vx);
-            if (ax > bestX && isFinite(ax) && ax < 1.15) bestX = ax;
-          }
-          if (bestX > 1.02) break;
+      const handleInfo = [];
+      const native = [];
+      const hb = new THREE.Box3();
+      root.traverse(o => {
+        if (!o.isMesh) return;
+        hb.setFromObject(o);
+        if (hb.isEmpty()) return;
+        const sz = hb.getSize(new THREE.Vector3());
+        const c = hb.getCenter(new THREE.Vector3());
+        if (sz.x < 0.32 && sz.y > 0.012 && sz.y < 0.08 && sz.z >= 0.08 && sz.z <= 0.30 &&
+            Math.abs(c.x) > 0.88 && Math.abs(c.x) < 1.14 && c.y > 0.55 && c.y < 0.80) {
+          native.push({ o, c });
         }
-        if (bestX > 1.02) break;
+      });
+      if (native.length >= 2) {
+        for (const it of native.slice(0, 4)) {
+          for (const m of Array.isArray(it.o.material) ? it.o.material : [it.o.material]) {
+            m.color.set(0x2a2d31); m.metalness = 0.85; m.roughness = 0.3; m.envMapIntensity = 0.85;
+          }
+          it.o.renderOrder = 8;
+        }
+        handleInfo.push({ kind: 'native', count: Math.min(native.length, 4) });
+      } else {
+        const ray = new THREE.Raycaster();
+        for (const sgn of [1, -1]) {
+          for (const zc of [0.35, -0.25]) {
+            const origin = V(sgn * 1.45, 0.72, zc);
+            ray.set(origin, V(-sgn, 0, 0));
+            ray.far = 2.9;
+            const hits = ray.intersectObjects(root.children, true);
+            if (!hits.length) continue;
+            const h0 = hits[0];
+            const n = h0.face ? h0.face.normal.clone().transformDirection(h0.object.matrixWorld) : V(-sgn, 0, 0);
+            const pos = h0.point.clone().addScaledVector(n, 0.004);
+            const hh = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.030, 0.017), handleMat);
+            hh.position.copy(pos);
+            hh.quaternion.setFromUnitVectors(V(0, 0, 1), n.normalize());
+            hh.userData.label = '隐藏式门把手';
+            PARTS.push(hh);
+            hh.renderOrder = 8;
+            shellRootG.add(hh);
+            handleInfo.push({ kind: 'raycast', side: sgn, z: +zc, pos: [+pos.x.toFixed(2), +pos.y.toFixed(2), +pos.z.toFixed(2)] });
+          }
+        }
       }
-      const hx = Math.max(bestX * 1.002, 0.80);
-      FL5.stats.handleX = +hx.toFixed(3);
-      for (const sgn of [1, -1]) {
-        const h = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.032, 0.15), handleMat);
-        h.position.set(sgn * hx, 0.715, -0.58);
-        h.renderOrder = 8;
-        shellRootG.add(h);
-      }
-    }
-
-    if (PINS[7] && PINS[7].o.parent !== root) {
-      const wp7 = new THREE.Vector3();
-      PINS[7].o.getWorldPosition(wp7);
-      root.attach(PINS[7].o);
-      PINS[7].o.position.copy(root.worldToLocal(wp7));
+      FL5.stats.handleInfo = handleInfo;
     }
 
     FL5.stats.glbTinted = tinted;

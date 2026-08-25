@@ -309,3 +309,26 @@ console error=0 · pageerror=0 · 对齐 stats 正常 · 三角形 ~1.03M(GLB)
 
 版权:README Liveries 节注明角色版权归原权利方、用户自产粉丝作品仅限非商用展示。
 截图:`shots/shot-{utaha,mai}-{45,xray}-v27.png` + `shot-{n4,livery-off2}-v27.png`
+
+---
+
+# v7c 门把手位置修复(v28)
+
+## 根因与修法
+v6e 顶点扫描带(y .62-.80 / z -.85~.30)未覆盖真壳表面采样点,fallback 到 x=±0.80 兜底值——把手生成在车身内部被完全包裹。
+重做为双保险方案:
+1. GLB 自带把手网格搜索(小条状 bbox 特征)|x|∈(.88,1.14)、y .55-.80、z 长度 8-30cm —— 本模型无匹配
+2. **射线定位**:y=0.72 高度、z={+0.35 前门,-0.25 后门}、从 ±1.45 向车心打 Raycaster,取首命中点+世界法线,把手 Box(.16,.030,.017) 沿法线外贴 4mm
+
+## v28 实测
+| 项 | 结果 |
+|---|---|
+| handleInfo | ✅ 4/4 raycast 命中:pos (±0.89-0.90, 0.72, ±0.35/-0.25) —— 真壳表面实测点 |
+| 可见可点 | ✅ 正侧视截图 shot-handle-v28.png;pickNDC 首命中「隐藏式门把手」(左门屏位 nx=-0.26) |
+| 材质 | 深灰 0x2a2d31 metalness .9 envMap .8,黑漆上高光边缘可辨 |
+| 联动 | attach shellRootG:爆炸跟随 ✅ X光淡出(GLB_SHELL_MATS)✅ |
+| console/pageerror | ✅ 0 / 0 |
+
+插曲记录:拼接时吞掉旧块收尾大括号导致两次页面死亡;`node --check`(CJS)竟通过而浏览器 module 拒绝——最终以浏览器报错为准目检定位。教训:**结构手术必须用 AST 或整块替换,禁手拼括号**。
+
+截图:`shots/shot-handle-v28.png`

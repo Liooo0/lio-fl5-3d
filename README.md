@@ -44,11 +44,21 @@ Note: Three.js loads from the unpkg CDN, so an internet connection is required e
 
 ## License
 
-Distributed under the [MIT License](LICENSE).
+Code distributed under the [MIT License](LICENSE).
+
+### 3D Model Attribution (CC BY-NC-ND 4.0)
+
+The realistic exterior shell used in v3.0+ is based on ["Honda Civic Type R FL5 Custom"](https://sketchfab.com/3d-models/honda-civic-type-r-fl5-custom-407a8981be2d45a388d7280d9b931663) by **blakebella** on Sketchfab, licensed under [CC BY-NC-ND 4.0](https://creativecommons.org/licenses/by-nc-nd/4.0/). The shell file itself (`models/*.glb`) is **not** redistributed in this repository, per the ND clause.
+
+- **BY** — blakebella is credited here and in the in-app "About" panel.
+- **NC** — this project is and remains non-commercial. Commercial use of the shell model is not permitted.
+- **ND** — the original GLB is not redistributed or sold; only runtime loading from your own legally-obtained copy.
+- Internal mechanical components (engine, turbo, transmission, suspension, exhaust) remain original procedural geometry from this project, MIT licensed.
+- To run with the realistic shell: place your own copy at `models/fl5.glb` — without it, the app falls back to the fully procedural body.
 
 ## Disclaimer
 
-This is an unofficial, non-commercial fan project. It is not affiliated with, sponsored, or endorsed by Honda Motor Co., Ltd. Honda, Civic, and Type R are trademarks of Honda Motor Co., Ltd. All geometry is original procedural approximation built for illustration purposes.
+This is an unofficial, non-commercial fan project. It is not affiliated with, sponsored, or endorsed by Honda Motor Co., Ltd. Honda, Civic, and Type R are trademarks of Honda Motor Co., Ltd. The FL5 shell mesh by blakebella is a fan-made replica; all mechanical internals are original procedural approximations built for illustration purposes.
 
 ## Verification
 

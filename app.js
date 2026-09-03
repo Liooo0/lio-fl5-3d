@@ -196,6 +196,7 @@ function main() {
   const LIVERY_SHADERS = [];
   let currentLivery = 'off';
   let shellRootG = null;
+  let glbTipsG = null;
 
   function reg(mesh, parent, label, opt) {
     opt = opt || {};
@@ -741,7 +742,7 @@ function main() {
   const particles = new THREE.Points(pGeo, pMat);
   particles.visible = false;
   particles.frustumCulled = false;
-  exhaustG.add(particles);
+  // particles parent decided at shell-swap time (glbTipsG on GLB path, exhaustG on fallback)
   let pAccum = 0;
   function stepParticles(dt) {
     if (!particlesActive || !particles.visible) return;
@@ -958,6 +959,7 @@ function main() {
     readySent = true;
     FL5.ready = true;
     FL5.phase = 'ready';
+    FL5.stats.offlineReady = true;
     loaderEl.style.display = 'none';
   }
   const introFrom = V(9.8, 4.9, 11.0), introTo = V(4.7, 2.85, 5.55);
@@ -1103,7 +1105,49 @@ function main() {
     chapterIdx: () => activeChapter,
     particlesOn: () => particlesActive,
     pinsCount: () => PINS.length,
-    wheelTilt() { const w = EXP.find(e => e.o.userData.rot && e.o.userData.rot[0] === 'x'); return w ? +w.o.rotation.x.toFixed(3) : 0; }
+    wheelTilt() { const w = EXP.find(e => e.o.userData.rot && e.o.userData.rot[0] === 'x'); return w ? +w.o.rotation.x.toFixed(3) : 0; },
+    toggleShellMode() {
+      if (shellMode === 'glb') {
+        shellMode = 'procedural';
+        if (shellRootG) shellRootG.visible = false;
+        if (glbTipsG) glbTipsG.visible = false;
+        bodyG.visible = true;
+        biwG.visible = true;
+        for (const w of WHEEL_GS) w.visible = true;
+        interiorG.visible = true;
+        engineG.visible = true;
+        turboG.visible = true;
+        chargeG.visible = true;
+        coolingG.visible = true;
+        driveG.visible = true;
+        suspG.visible = true;
+        fuelG.visible = true;
+        battG.visible = true;
+        exhaustG.visible = true;
+        if (tailTrio) tailTrio.visible = true;
+      } else {
+        shellMode = 'glb';
+        if (shellRootG) shellRootG.visible = true;
+        if (glbTipsG) glbTipsG.visible = true;
+        bodyG.visible = false;
+        biwG.visible = false;
+        for (const w of WHEEL_GS) w.visible = false;
+        interiorG.visible = false;
+        engineG.visible = false;
+        turboG.visible = false;
+        chargeG.visible = false;
+        coolingG.visible = false;
+        driveG.visible = false;
+        suspG.visible = false;
+        fuelG.visible = false;
+        battG.visible = false;
+        exhaustG.visible = false;
+        if (tailTrio) tailTrio.visible = false;
+      }
+      FL5.shellMode = shellMode;
+      return shellMode;
+    },
+    getShellMode: () => shellMode
   };
 
   function genN4() {
@@ -1399,8 +1443,40 @@ function main() {
     }
 
     bodyG.visible = false;
+    biwG.visible = false;
     for (const w of WHEEL_GS) w.visible = false;
     interiorG.visible = false;
+    engineG.visible = false;
+    turboG.visible = false;
+    chargeG.visible = false;
+    coolingG.visible = false;
+    driveG.visible = false;
+    suspG.visible = false;
+    fuelG.visible = false;
+    battG.visible = false;
+    exhaustG.visible = false;
+    if (tailTrio) tailTrio.visible = false;
+    FL5.stats.glbOnly = true;
+
+    const discMeshes = [];
+    const tmpBD = new THREE.Box3();
+    root.traverse(o => {
+      if (!o.isMesh) return;
+      const mmD = Array.isArray(o.material) ? o.material : [o.material];
+      if (!mmD.some(m => /brakedisc/i.test(m.name || ''))) return;
+      tmpBD.setFromObject(o);
+      if (tmpBD.isEmpty()) return;
+      const cD = tmpBD.getCenter(new THREE.Vector3());
+      discMeshes.push(cD);
+    });
+    if (discMeshes.length) {
+      const fr = discMeshes.filter(c => c.x > 0).sort((p, q) => q.z - p.z)[0] || discMeshes[0];
+      CHAPTERS[5].tgt = [+fr.x.toFixed(2), +fr.y.toFixed(2), +fr.z.toFixed(2)];
+      const t5 = CHAPTERS[5].tgt;
+      CHAPTERS[5].pos = [t5[0] + 1.05, t5[1] + 0.22, t5[2] + 1.15];
+      FL5.stats.brakeTarget = t5;
+    }
+
 
     const engineMeshes = [];
     let tailZ = null;
@@ -1435,13 +1511,32 @@ function main() {
     if (tailTrio && tailZ !== null && isFinite(tailZ)) {
       tailTrio.visible = false;
       TAIL_ORIGIN.set(0, 0.245, tailZ + 0.10);
-      const pyr = [[-0.105, 0], [0.105, 0], [0, 0.078]];
+      glbTipsG = new THREE.Group();
+      glbTipsG.userData.basePos = glbTipsG.position.clone();
+      scene.add(glbTipsG);
+      EXP.push({ o: glbTipsG, d: V(0, -0.58, 0) });
+      let bottomY = 0.245;
+      try {
+        const vr = new THREE.Raycaster();
+        for (const tx of [-0.115, 0.115]) {
+          vr.set(V(tx, 1.05, TAIL_ORIGIN.z + 0.55), V(0, -1, 0));
+          vr.far = 2.2;
+          const hh = vr.intersectObjects(root.children, true);
+          if (hh.length) bottomY = Math.max(bottomY, hh[0].point.y - 0.02);
+        }
+      } catch (e) {}
+      FL5.stats.tipsBottomY = +bottomY.toFixed(3);
+      const pyr = [[-0.115, 0], [0.115, 0], [0, 0.082]];
       for (const [tx, ty] of pyr) {
-        tubeBetween(V(tx * 0.5, 0.235, tailZ + 0.34), V(tx, 0.245 + ty, tailZ - 0.02), 0.036, undefined, MAT.steel, exhaustG, null, { cast: false });
-        cyl(0.047, 0.047, 0.11, 16, MAT.gloss, exhaustG, tx, 0.245 + ty, tailZ - 0.03, '三出尾喉(品字形)', { axis: 'Z', open: true });
-        cyl(0.034, 0.034, 0.10, 12, MAT.plastic, exhaustG, tx, 0.245 + ty, tailZ - 0.035, null, { axis: 'Z' });
-        torus(0.046, 0.006, MAT.chrome, exhaustG, tx, 0.245 + ty, tailZ - 0.085, null, { cast: false });
+        tubeBetween(V(tx * 0.45, bottomY + 0.02, tailZ + 0.30), V(tx, bottomY + 0.012 + ty, tailZ - 0.01), 0.034, undefined, MAT.steel, glbTipsG, null, { cast: false });
+        cyl(0.038, 0.038, 0.105, 16, MAT.gloss, glbTipsG, tx, bottomY + 0.012 + ty, tailZ - 0.022, '三出尾喉(品字形)', { axis: 'Z', open: true });
+        cyl(0.027, 0.027, 0.095, 12, MAT.plastic, glbTipsG, tx, bottomY + 0.012 + ty, tailZ - 0.027, null, { axis: 'Z' });
+        torus(0.037, 0.005, MAT.chrome, glbTipsG, tx, bottomY + 0.012 + ty, tailZ - 0.077, null, { cast: false });
       }
+      glbTipsG.add(particles);
+      TAIL_ORIGIN.set(0, bottomY + 0.05, TAIL_ORIGIN.z);
+      CHAPTERS[6].tgt = [0, bottomY + 0.06, tailZ];
+      CHAPTERS[6].pos = [0.85, bottomY + 0.30, tailZ - 1.15];
       FL5.stats.tipsPyramid = true;
     }
 
@@ -1498,6 +1593,8 @@ function main() {
 
     FL5.stats.glbTinted = tinted;
     shellMode = 'glb';
+    FL5.stats.chTargets = { ch2: CHAPTERS[1].tgt.slice(), ch6: CHAPTERS[5].tgt.slice(), ch7: CHAPTERS[6].tgt.slice() };
+    FL5.stats.visMap = { engine:engineG.visible,turbo:turboG.visible,charge:chargeG.visible,cooling:coolingG.visible,drive:driveG.visible,susp:suspG.visible,fuel:fuelG.visible,batt:battG.visible,exhaust:exhaustG.visible,body:bodyG.visible,biw:biwG.visible,interior:interiorG.visible,tips:(glbTipsG&&glbTipsG.visible)!==false };
     FL5.shellMode = 'glb';
   }
 

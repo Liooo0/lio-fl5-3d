@@ -24,7 +24,7 @@ node serve.js
 # open http://localhost:8790
 ```
 
-No build step, no npm install. Three.js loads via CDN importmap (unpkg).
+No build step, no npm install. Three.js and addons are fully vendored locally in `vendor/three/` — 100% offline-first.
 
 ## Online (GitHub Pages)
 
@@ -32,11 +32,11 @@ No build step needed — the repo root is the site. Once GitHub Pages is enabled
 
 **https://liooo0.github.io/lio-fl5-3d/**
 
-Note: Three.js loads from the unpkg CDN, so an internet connection is required even for the Pages deployment.
+Note: All dependencies are vendored directly in the repository; zero external network requests are required.
 
 ## Tech Notes
 
-- Three.js r160 (ES Modules + importmap)
+- Three.js r160 (ES Modules + local vendor importmap, zero external CDN dependency)
 - Pure procedural geometry: ExtrudeGeometry, CylinderGeometry, TorusGeometry, TubeGeometry, CatmullRomCurve3 — zero model files
 - MeshPhysicalMaterial clearcoat for paint; RoomEnvironment PMREM for reflections
 - ~38k triangles, PCFSoft shadows (2048 map), ACES tone mapping

@@ -1,0 +1,7 @@
+OFFLINE_DONE — v30
+
+1. Three.js r160 核心及 15 个 addon/shader 模块完整本地化至 vendor/three/
+2. importmap 改为相对路径，斩断一切外部 CDN 依赖
+3. Playwright 离线环境测试: 0 外部请求，16 个 vendor 模块 200 OK
+4. FL5.api.toggleShellMode() 双模自由切换 (39k 程序化 ↔ 1.03M GLB)
+5. console error = 0, pageerror = 0

@@ -16,7 +16,7 @@
 
 1. **Secret 扫描**: `git grep -iE "sk-…|api_key|password|token"` 全历史 4 个 commit 0 命中 ✅
 2. **内部文件**: `git ls-files` 无 BRIEF*.md / ROUND*.md / overnight.* / POLISH_DONE(.gitignore 隔离); VERIFICATION.md 清理了用户名指代与 `~/projects/fl5-3d` 本机路径后 commit(`5b844b2`) ✅
-3. **绝对路径**: 全历史 grep `~|/Users/` 0 命中; serve.js 使用 `__dirname` 相对根 + localhost ✅
+3. **绝对路径**: 全历史 grep 本机家目录前缀（`/Users/<用户名>/`）0 命中; serve.js 使用 `__dirname` 相对根 + localhost ✅
 4. **Playwright 最终回归**(headless chromium, SwiftShader): `window.__fl5.ready=true`, **console error = 0**, **pageerror = 0**, 171 可点零件, 39,426 三角形, 四视角截图正常 ✅
    - 像素级对照 v11 基线: 布局一致、内容亮度更高(SwiftShader 参数差异致 PNG 更小), 非空图/非黑屏
 5. **README 终审**: 英文 ✅ · 截图相对路径 shots/ ✅ · Pages 说明(含正式 URL) ✅ · MIT LICENSE 文件 ✅ · 免责声明(unofficial fan project, not affiliated with Honda)独立章节 ✅

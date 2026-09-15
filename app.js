@@ -193,6 +193,7 @@ function main() {
   const GLB_FADE_MATS = [];
   let shellMode = 'proc';
   const PAINT_MATS = [];
+  const WHEEL_MATS = [];   // GLB 真车壳里匹配到轮毂关键字的材质（供「轮毂」配色用）
   const LIVERY_SHADERS = [];
   let currentLivery = 'off';
   let shellRootG = null;
@@ -804,6 +805,7 @@ function main() {
 
   const $ = id => document.getElementById(id);
   const xrSlider = $('xr'), exSlider = $('ex'), btnTour = $('btnTour'), btnReset = $('btnReset');
+  const paintSel = $('paintSel'), wheelSel = $('wheelSel');
   const stationEl = $('station'), tipEl = $('tip'), loaderEl = $('loader'), errBox = $('errbox');
   xrSlider.addEventListener('input', () => { if (!touring && !tween) { prevSavedXray = xrSlider.value / 100; } applyXray(xrSlider.value / 100); });
   exSlider.addEventListener('input', () => applyExplode(exSlider.value / 100));
@@ -1059,6 +1061,12 @@ function main() {
     setView(name) { if (touring) stopTour(); (VIEWS[name] || VIEWS.exterior)(); },
     setXray: v => setXrayUI(v),
     setExplode: v => setExplodeUI(v),
+    setPaint: k => setPaint(k),
+    getPaint: () => currentPaint,
+    setWheel: k => setWheel(k),
+    getWheel: () => currentWheel,
+    paints: () => Object.keys(PAINTS),
+    wheels: () => Object.keys(WHEELS),
     tour(on) { on ? startTour() : stopTour(); },
     cam() { return { p: camera.position.toArray(), t: controls.target.toArray() }; },
     setCam(p, t) { camTo(p, t); },
@@ -1205,6 +1213,45 @@ function main() {
     const n = d.length / 4;
     return new THREE.Color(r / n / 255, gg / n / 255, b / n / 255);
   }
+  // ── 车漆 / 轮毂 配色（v31）────────────────────────────────────────
+  // 车漆要同时作用于两套外壳：程序化外壳的 MAT.paint，以及 GLB 真车壳加载时
+  // 收集进 PAINT_MATS 的漆面材质（glb 默认是竞速红 0xc22730）。
+  // 轮毂同理：程序化的 MAT.rim/rimDS + GLB 里匹配到 rimKey 的材质（WHEEL_MATS）。
+  const PAINTS = {
+    white: { label: '冠军白 (Championship White)', hex: 0xe9e5dd },
+    red:   { label: '竞速红 (Rallye Red)',          hex: 0xc22730 },
+    black: { label: '水晶黑 (Crystal Black)',       hex: 0x15171b }
+  };
+  const WHEELS = {
+    black:  { label: '原厂锻造哑光黑', hex: 0x3a3f45, roughness: 0.26, metalness: 0.88 },
+    silver: { label: '锻造亮银',       hex: 0xc9ced4, roughness: 0.20, metalness: 0.95 }
+  };
+  let currentPaint = 'red', currentWheel = 'black';
+
+  function setPaint(key) {
+    const p = PAINTS[key];
+    if (!p) return;
+    currentPaint = key;
+    if (paintSel && paintSel.value !== key) paintSel.value = key;   // 同步面板显示
+    if (MAT.paint) MAT.paint.color.setHex(p.hex);
+    for (const m of PAINT_MATS) m.color.setHex(p.hex);
+    FL5.stats.paint = key;
+    FL5.stats.paintHex = '#' + p.hex.toString(16).padStart(6, '0');
+  }
+  function setWheel(key) {
+    const w = WHEELS[key];
+    if (!w) return;
+    currentWheel = key;
+    if (wheelSel && wheelSel.value !== key) wheelSel.value = key;   // 同步面板显示
+    for (const m of [MAT.rim, MAT.rimDS, ...WHEEL_MATS]) {
+      if (!m) continue;
+      m.color.setHex(w.hex);
+      m.roughness = w.roughness;
+      m.metalness = w.metalness;
+    }
+    FL5.stats.wheel = key;
+  }
+
   function setLivery(name) {
     currentLivery = name;
     if (!PAINT_MATS.length) return;
@@ -1235,6 +1282,8 @@ function main() {
 
   const liverySel = document.getElementById('liverySel');
   liverySel.addEventListener('change', () => setLivery(liverySel.value));
+  paintSel.addEventListener('change', () => setPaint(paintSel.value));
+  wheelSel.addEventListener('change', () => setWheel(wheelSel.value));
 
   (function initShellSwap() {
     const SHELL_URL = 'models/fl5.glb';
@@ -1327,7 +1376,7 @@ function main() {
           if (!m.userData.env0) { m.userData.env0 = m.envMapIntensity !== undefined ? m.envMapIntensity : 1; }
           if (/(Paint_Material|Coloured_Material|Base_Material)$/i.test(m.name.trim())) {
             if (!PAINT_MATS.includes(m)) PAINT_MATS.push(m);
-            m.color.set(0xc22730);
+            m.color.setHex(PAINTS[currentPaint].hex);   // 跟随「车漆」选择（默认竞速红）
             m.envMapIntensity = Math.min(m.userData.env0, 0.42);
             tinted++;
           } else {
@@ -1337,6 +1386,12 @@ function main() {
           if (!GLB_SHELL_MATS.includes(m)) GLB_SHELL_MATS.push(m);
         } else if (rimKey.test(nm) || tireKey.test(nm) || discKey.test(nm)) {
           if (!wheelMeshes.includes(o)) wheelMeshes.push(o);
+          // 只有轮毂本体跟随「轮毂」配色；轮胎/刹车盘保持原色
+          if (rimKey.test(nm)) {
+            for (const m of (Array.isArray(o.material) ? o.material : [o.material])) {
+              if (m && !WHEEL_MATS.includes(m)) WHEEL_MATS.push(m);
+            }
+          }
         }
       }
     });
@@ -1347,6 +1402,10 @@ function main() {
         if (GLB_SHELL_MATS.includes(m) || GLB_FADE_MATS.includes(m)) { o.renderOrder = 8; break; }
       }
     });
+
+    // GLB 材质已收集完 → 应用当前「车漆 / 轮毂」选择（用户在加载前改过也能生效）
+    setPaint(currentPaint);
+    setWheel(currentWheel);
 
     for (const m of PAINT_MATS) {
       m.onBeforeCompile = sh => {
